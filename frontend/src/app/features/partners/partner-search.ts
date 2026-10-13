@@ -26,9 +26,14 @@ export const SEARCH_DEBOUNCE_MS = 300;
     </form>
   `,
   styles: `
+    /* Shrinks beside the page title on narrow screens instead of overflowing. */
+    :host {
+      display: block;
+      flex: 0 1 15rem;
+      min-width: 0;
+    }
     input {
-      width: 15rem;
-      max-width: 100%;
+      width: 100%;
     }
   `,
 })
