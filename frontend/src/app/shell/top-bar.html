@@ -1,0 +1,34 @@
+<header class="top-bar">
+  <div class="inner">
+    <a class="wordmark" routerLink="/" [queryParams]="linkParams()">gemba</a>
+    <nav aria-label="Main">
+      <a
+        routerLink="/"
+        [queryParams]="linkParams()"
+        routerLinkActive="active"
+        [routerLinkActiveOptions]="{ exact: true }"
+        ariaCurrentWhenActive="page"
+        >Overview</a
+      >
+      <a
+        routerLink="/partners"
+        [queryParams]="linkParams()"
+        routerLinkActive="active"
+        ariaCurrentWhenActive="page"
+        >Partners</a
+      >
+      <a
+        routerLink="/tasks"
+        [queryParams]="linkParams()"
+        routerLinkActive="active"
+        ariaCurrentWhenActive="page"
+        >Tasks</a
+      >
+    </nav>
+    <div class="end">
+      <span class="badge">Synthetic data</span>
+      <a class="outside" [href]="apiDocsUrl">API docs</a>
+      <a class="outside" [href]="repoUrl">GitHub</a>
+    </div>
+  </div>
+</header>

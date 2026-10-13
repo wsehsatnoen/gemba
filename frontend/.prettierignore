@@ -1,0 +1,9 @@
+dist
+coverage
+node_modules
+.angular
+playwright-report
+test-results
+package-lock.json
+.vscode
+src/app/api/schema.d.ts
