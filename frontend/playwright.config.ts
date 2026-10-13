@@ -1,7 +1,8 @@
 import { defineConfig, devices } from '@playwright/test';
 
 // End-to-end tests run against the mock build (`npm run start:mock`), so they need no backend.
-const PORT = 4300;
+// Set E2E_PORT to run several worktrees' suites side by side.
+const PORT = Number(process.env['E2E_PORT'] ?? 4300);
 
 export default defineConfig({
   testDir: './e2e',
