@@ -6,4 +6,3 @@ playwright-report
 test-results
 package-lock.json
 .vscode
-src/app/api/schema.d.ts
