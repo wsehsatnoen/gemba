@@ -140,16 +140,13 @@ h2 {
   padding: 28px 0 0 88px;
 }
 
+/* About the height of a real cell: the figures plus the sparkline. */
 .skeleton-cell {
-  height: 96px;
+  height: 120px;
 }
 
-/* Phones: the row header stacks the cell content tighter. */
+/* Phones: the cell content stacks, and the sparkline takes the cell's full width. */
 @media (max-width: 599.98px) {
-  .row-head-col {
-    width: 64px;
-  }
-
   .cell {
     padding: var(--space-2);
   }
@@ -163,7 +160,7 @@ h2 {
     max-width: none;
   }
 
-  .skeleton-grid {
-    padding-left: 68px;
+  .skeleton-cell {
+    height: 150px;
   }
 }

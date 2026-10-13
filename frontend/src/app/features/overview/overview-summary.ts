@@ -35,7 +35,9 @@ interface CardView {
         </div>
       }
       @case ('error') {
-        <g-state class="card" status="error" [problem]="problem()" (retry)="summary.reload()" />
+        <div class="card">
+          <g-state status="error" [problem]="problem()" (retry)="summary.reload()" />
+        </div>
       }
       @default {
         @if (view(); as view) {
@@ -48,7 +50,7 @@ interface CardView {
             <p class="note muted">{{ view.unattributedNote }}</p>
           }
         } @else {
-          <g-empty-range class="card" />
+          <div class="card"><g-empty-range /></div>
         }
       }
     }
