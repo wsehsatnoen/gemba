@@ -1,0 +1,49 @@
+<g-page-header heading="Tasks" />
+
+<div class="layout" [class.with-panel]="task() !== null && isDesktop()">
+  <div class="list" [attr.inert]="listInert() ? '' : null">
+    <div class="controls">
+      <label class="toggle">
+        <input #p90 type="checkbox" [checked]="aboveP90()" (change)="setAboveP90(p90.checked)" />
+        Above P90 only
+      </label>
+
+      @if (partnerId(); as partner) {
+        <span class="chip">
+          Partner {{ partner }}
+          <button
+            type="button"
+            class="chip-remove"
+            [attr.aria-label]="'Remove partner filter ' + partner"
+            (click)="setPartner('')"
+          >
+            <span aria-hidden="true">×</span>
+          </button>
+        </span>
+      } @else {
+        <form
+          class="partner-form"
+          (submit)="$event.preventDefault(); setPartner(partnerInput.value)"
+        >
+          <label for="partner-filter" class="visually-hidden">Partner ID</label>
+          <input
+            #partnerInput
+            id="partner-filter"
+            class="control"
+            type="text"
+            placeholder="Partner ID"
+            autocomplete="off"
+            spellcheck="false"
+          />
+          <button type="submit" class="control">Filter</button>
+        </form>
+      }
+    </div>
+
+    <g-task-table [query]="query()" [selectedTaskId]="task()" (taskSelect)="openTask($event)" />
+  </div>
+
+  @if (task(); as taskId) {
+    <g-task-panel [taskId]="taskId" (closed)="closeTask()" />
+  }
+</div>
