@@ -9,6 +9,7 @@ import type { BarDatum } from '../../shared/charts/chart-types';
 import { State } from '../../shared/ui/state';
 import { EmptyRange } from './empty-range';
 import { regionStatus } from './region-status';
+import { stableApiParams } from './stable-filters';
 
 export type WeekdayMetric = 'tasks' | 'hours';
 
@@ -113,7 +114,7 @@ export type WeekdayMetric = 'tasks' | 'hours';
 })
 export class WeekdayChart {
   private readonly filterState = inject(FilterState);
-  protected readonly weekday = inject(AnalyticsApi).weekday(() => this.filterState.apiParams());
+  protected readonly weekday = inject(AnalyticsApi).weekday(stableApiParams(this.filterState));
 
   protected readonly status = computed(() => regionStatus(this.weekday));
   protected readonly problem = computed(() => toProblem(this.weekday.error()));

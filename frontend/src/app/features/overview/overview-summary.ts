@@ -7,6 +7,7 @@ import { StatCard } from '../../shared/ui/stat-card';
 import { State } from '../../shared/ui/state';
 import { EmptyRange } from './empty-range';
 import { regionStatus } from './region-status';
+import { stableApiParams } from './stable-filters';
 
 interface CardView {
   label: string;
@@ -92,7 +93,7 @@ interface CardView {
 })
 export class OverviewSummary {
   private readonly filterState = inject(FilterState);
-  protected readonly summary = inject(AnalyticsApi).summary(() => this.filterState.apiParams());
+  protected readonly summary = inject(AnalyticsApi).summary(stableApiParams(this.filterState));
 
   protected readonly placeholders = [0, 1, 2, 3];
   protected readonly status = computed(() => regionStatus(this.summary));
