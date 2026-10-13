@@ -16,7 +16,6 @@ import { TASK_TYPE_LABELS, ZONE_LABELS } from '../../core/labels';
 import { toProblem } from '../../core/problem';
 import { Viewport } from '../../core/viewport';
 import { State } from '../../shared/ui/state';
-import { sameQuery } from './same-query';
 
 /** Skeleton rows shown while a page loads. Each is the height of a real row. */
 const SKELETON_ROWS = Array.from({ length: 10 }, (_, i) => i);
@@ -43,9 +42,7 @@ export class TaskTable {
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   protected readonly isDesktop = inject(Viewport).isDesktop;
 
-  // Only a change in what is asked for refetches (see sameQuery).
-  private readonly request = computed(() => this.query(), { equal: sameQuery });
-  protected readonly tasks = inject(TasksApi).list(this.request);
+  protected readonly tasks = inject(TasksApi).list(() => this.query());
 
   protected readonly rows = computed(() => (this.tasks.hasValue() ? this.tasks.value().items : []));
   protected readonly problem = computed(() => toProblem(this.tasks.error()));
@@ -63,15 +60,29 @@ export class TaskTable {
   protected readonly taskTypeLabels = TASK_TYPE_LABELS;
 
   private previousSelection: number | null = null;
+  /** A row that should take focus once it is on screen (the page may still be loading). */
+  private pendingFocus: number | null = null;
 
   constructor() {
     // When the panel closes (an ID becomes null), return focus to that task's row.
     afterRenderEffect(() => {
       const selected = this.selectedTaskId();
-      const previous = this.previousSelection;
+      this.rows();
+      if (this.previousSelection !== null && selected === null) {
+        this.pendingFocus = this.previousSelection;
+      }
       this.previousSelection = selected;
-      if (previous !== null && selected === null) {
-        this.host.nativeElement.querySelector<HTMLElement>(`[data-task-id="${previous}"]`)?.focus();
+      if (selected !== null) this.pendingFocus = null;
+      if (this.pendingFocus === null) return;
+      const row = this.host.nativeElement.querySelector<HTMLElement>(
+        `[data-task-id="${this.pendingFocus}"]`,
+      );
+      if (row) {
+        row.focus();
+        this.pendingFocus = null;
+      } else if (this.tasks.hasValue()) {
+        // The row isn't on this page, so there is nothing to return to.
+        this.pendingFocus = null;
       }
     });
   }
