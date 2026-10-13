@@ -41,12 +41,9 @@
   font-size: var(--text-lg);
 }
 
+/* The heading takes focus only so screen readers start here; it isn't a control. */
 .top h2:focus {
   outline: none;
-}
-
-.top h2:focus-visible {
-  outline: var(--focus-ring);
 }
 
 .icon-button {

@@ -35,7 +35,8 @@
                   (click)="select(task.taskId)"
                 >
                   <span class="visually-hidden">Task {{ task.taskId }}, started </span
-                  >{{ task.startedAt | facilityTime }}
+                  >{{ task.startedAt | facilityDate: 'short' }} ·
+                  {{ task.startedAt | facilityTime }}
                 </button>
               </td>
               <td>{{ zoneLabels[task.zone] }}</td>
@@ -51,7 +52,7 @@
         } @else {
           @for (i of skeletonRows; track i) {
             <tr class="skeleton-row" aria-hidden="true">
-              <td><span class="skeleton bar short"></span></td>
+              <td><span class="skeleton bar start"></span></td>
               <td><span class="skeleton bar"></span></td>
               <td><span class="skeleton bar wide"></span></td>
               <td class="end"><span class="skeleton bar short"></span></td>
@@ -77,7 +78,8 @@
               <span class="line">
                 <span class="time"
                   ><span class="visually-hidden">Task {{ task.taskId }}, started </span
-                  >{{ task.startedAt | facilityTime }}</span
+                  >{{ task.startedAt | facilityDate: 'short' }} ·
+                  {{ task.startedAt | facilityTime }}</span
                 >
                 <span class="num duration">{{ task.durationMs | duration }}</span>
               </span>
@@ -94,7 +96,7 @@
         @for (i of skeletonRows; track i) {
           <li class="skeleton-item" aria-hidden="true">
             <span class="line"
-              ><span class="skeleton bar short"></span><span class="skeleton bar short"></span
+              ><span class="skeleton bar start"></span><span class="skeleton bar short"></span
             ></span>
             <span class="line"><span class="skeleton bar wide"></span></span>
           </li>

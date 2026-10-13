@@ -177,6 +177,10 @@ tr.selected .row-button {
   width: 44px;
 }
 
+.bar.start {
+  width: 104px;
+}
+
 .bar.wide {
   width: 120px;
 }

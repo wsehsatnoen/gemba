@@ -11,7 +11,7 @@ import {
 import { TasksApi } from '../../core/api/tasks-api';
 import type { PageMeta, TaskQuery } from '../../core/api/types';
 import { FilterState } from '../../core/filter-state';
-import { CountPipe, DurationPipe, FacilityTimePipe } from '../../core/format';
+import { CountPipe, DurationPipe, FacilityDatePipe, FacilityTimePipe } from '../../core/format';
 import { TASK_TYPE_LABELS, ZONE_LABELS } from '../../core/labels';
 import { toProblem } from '../../core/problem';
 import { Viewport } from '../../core/viewport';
@@ -28,7 +28,7 @@ const SKELETON_ROWS = Array.from({ length: 10 }, (_, i) => i);
  */
 @Component({
   selector: 'g-task-table',
-  imports: [State, CountPipe, DurationPipe, FacilityTimePipe],
+  imports: [State, CountPipe, DurationPipe, FacilityDatePipe, FacilityTimePipe],
   templateUrl: './task-table.html',
   styleUrl: './task-table.css',
 })
