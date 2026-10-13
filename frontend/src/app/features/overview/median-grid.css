@@ -1,0 +1,166 @@
+:host {
+  display: block;
+}
+
+section {
+  height: 100%;
+}
+
+h2 {
+  margin-bottom: var(--space-3);
+}
+
+.grid {
+  width: 100%;
+  table-layout: fixed;
+}
+
+.grid th {
+  text-align: left;
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  vertical-align: top;
+}
+
+.grid thead th {
+  padding: 0 var(--space-3) var(--space-2);
+}
+
+.row-head-col {
+  width: 84px;
+}
+
+.grid tbody th {
+  padding: var(--space-3) var(--space-2) 0 0;
+}
+
+.grid td {
+  padding: var(--space-1);
+  vertical-align: top;
+}
+
+.cell {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-3);
+  min-height: 96px;
+  padding: var(--space-3);
+  border-radius: var(--radius-control);
+}
+
+.cell:not(.excluded):hover {
+  background: var(--surface-sunken);
+}
+
+/* The focus ring goes on the whole cell, since the link covers it. */
+.cell:has(.cell-link:focus-visible) {
+  outline: var(--focus-ring);
+  outline-offset: 0;
+}
+
+.cell-link {
+  display: grid;
+  grid-template-columns: auto auto;
+  align-items: baseline;
+  justify-content: start;
+  gap: 0 var(--space-3);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.cell-link:hover {
+  color: var(--text);
+}
+
+.cell-link:focus-visible {
+  outline: none;
+}
+
+.cell-link::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+
+.median {
+  font-size: var(--text-xl);
+  font-weight: var(--weight-medium);
+  line-height: 1.2;
+  color: var(--accent);
+}
+
+.cell:hover .median {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+.count {
+  font-size: var(--text-sm);
+}
+
+.p90 {
+  grid-column: 1 / -1;
+  font-size: var(--text-sm);
+}
+
+.spark {
+  display: block;
+  flex: 1 1 96px;
+  max-width: 160px;
+  min-width: 0;
+}
+
+.excluded {
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: var(--space-1);
+  color: var(--text-muted);
+  background: var(--surface-sunken);
+}
+
+.excluded > [aria-hidden] {
+  font-size: var(--text-xl);
+  line-height: 1.2;
+}
+
+.excluded-note {
+  font-size: var(--text-sm);
+}
+
+.skeleton-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+  padding: 28px 0 0 88px;
+}
+
+/* About the height of a real cell: the figures plus the sparkline. */
+.skeleton-cell {
+  height: 120px;
+}
+
+/* Phones: the cell content stacks, and the sparkline takes the cell's full width. */
+@media (max-width: 599.98px) {
+  .cell {
+    padding: var(--space-2);
+  }
+
+  .cell-link {
+    grid-template-columns: auto;
+  }
+
+  .spark {
+    flex-basis: 100%;
+    max-width: none;
+  }
+
+  .skeleton-cell {
+    height: 150px;
+  }
+}
