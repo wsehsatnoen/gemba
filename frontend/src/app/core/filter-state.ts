@@ -50,17 +50,25 @@ export class FilterState {
 
   private readonly parsed = computed(() => parseFilters(this.params(), this.metaService.meta()));
 
+  // `equal: sameValues` keeps the previous object when the values didn't change. Every
+  // navigation creates new objects, and `httpResource` refetches when its request changes,
+  // so without this, opening a task or any other page-level URL change would reload every
+  // data region on the page.
+
   /** The filter bar's values. */
-  readonly filters = computed(() => this.parsed().filters);
+  readonly filters = computed(() => this.parsed().filters, { equal: sameValues });
 
   /** Invalid filter parameters in the URL, for the "using defaults" notice. */
-  readonly invalid = computed(() => this.parsed().invalid);
+  readonly invalid = computed(() => this.parsed().invalid, { equal: sameValues });
 
   /** The shared filters as API query parameters (`zone` and `taskType` omitted for "all"). */
-  readonly apiParams = computed<FilterParams>(() => {
-    const { from, to, zone, taskType } = this.filters();
-    return { from, to, ...(zone && { zone }), ...(taskType && { taskType }) };
-  });
+  readonly apiParams = computed<FilterParams>(
+    () => {
+      const { from, to, zone, taskType } = this.filters();
+      return { from, to, ...(zone && { zone }), ...(taskType && { taskType }) };
+    },
+    { equal: sameValues },
+  );
 
   /** True when no filter, search, or page-level filter is set in the URL. */
   readonly isClear = computed(() => CLEARABLE.every((name) => this.params()[name] == null));
@@ -140,6 +148,12 @@ export class FilterState {
     const value = this.nonNegativeInt(name);
     return value !== null && value > 0 ? value : null;
   }
+}
+
+/** True when two flat objects or arrays hold the same keys and values. */
+export function sameValues<T extends object>(a: T, b: T): boolean {
+  const keys = Object.keys(a) as (keyof T)[];
+  return keys.length === Object.keys(b).length && keys.every((key) => a[key] === b[key]);
 }
 
 /**

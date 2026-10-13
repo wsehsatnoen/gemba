@@ -103,6 +103,18 @@ describe('FilterState', () => {
     expect(state.apiParams()).toEqual({ from: '2027-01-04', to: '2027-01-31', zone: 'CHILLED' });
   });
 
+  it('keeps the same filter objects when only page-level parameters change', async () => {
+    await open('/tasks?zone=CHILLED');
+    const filters = state.filters();
+    const apiParams = state.apiParams();
+    await router.navigateByUrl('/tasks?zone=CHILLED&task=48213');
+    expect(state.task()).toBe(48213);
+    expect(state.filters()).toBe(filters);
+    expect(state.apiParams()).toBe(apiParams);
+    await router.navigateByUrl('/tasks?zone=AMBIENT&task=48213');
+    expect(state.apiParams()).not.toBe(apiParams);
+  });
+
   it('ignores malformed page-level parameters', async () => {
     await open('/tasks?page=-1&task=abc&day=Jan19');
     expect(state.page()).toBe(0);
