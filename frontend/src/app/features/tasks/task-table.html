@@ -1,0 +1,134 @@
+<div class="region" [attr.aria-busy]="tasks.isLoading()">
+  @if (tasks.error()) {
+    <g-state status="error" [problem]="problem()" (retry)="retry()" />
+  } @else if (tasks.hasValue() && rows().length === 0) {
+    <g-state status="empty">
+      <p>No tasks match these filters.</p>
+      <button type="button" class="control" (click)="clearFilters()">Clear filters</button>
+    </g-state>
+  } @else if (isDesktop()) {
+    <table>
+      <caption class="visually-hidden">
+        Tasks
+      </caption>
+      <thead>
+        <tr>
+          <th scope="col">Start</th>
+          <th scope="col">Zone</th>
+          <th scope="col">Task type</th>
+          <th scope="col" class="end">Duration</th>
+          <th scope="col"><span class="visually-hidden">Above P90</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        @if (tasks.hasValue()) {
+          @for (task of rows(); track task.taskId) {
+            @let selected = task.taskId === selectedTaskId();
+            <tr [class.selected]="selected">
+              <td>
+                <span class="marker" aria-hidden="true">{{ selected ? '›' : '' }}</span>
+                <button
+                  type="button"
+                  class="row-button"
+                  [attr.data-task-id]="task.taskId"
+                  [attr.aria-current]="selected ? 'true' : null"
+                  (click)="select(task.taskId)"
+                >
+                  <span class="visually-hidden">Task {{ task.taskId }}, started </span
+                  >{{ task.startedAt | facilityTime }}
+                </button>
+              </td>
+              <td>{{ zoneLabels[task.zone] }}</td>
+              <td>{{ taskTypeLabels[task.taskType] }}</td>
+              <td class="end num">{{ task.durationMs | duration }}</td>
+              <td>
+                @if (task.aboveP90) {
+                  <span class="pill slower">Above P90</span>
+                }
+              </td>
+            </tr>
+          }
+        } @else {
+          @for (i of skeletonRows; track i) {
+            <tr class="skeleton-row" aria-hidden="true">
+              <td><span class="skeleton bar short"></span></td>
+              <td><span class="skeleton bar"></span></td>
+              <td><span class="skeleton bar wide"></span></td>
+              <td class="end"><span class="skeleton bar short"></span></td>
+              <td></td>
+            </tr>
+          }
+        }
+      </tbody>
+    </table>
+  } @else {
+    <ul class="stack" aria-label="Tasks">
+      @if (tasks.hasValue()) {
+        @for (task of rows(); track task.taskId) {
+          @let selected = task.taskId === selectedTaskId();
+          <li [class.selected]="selected">
+            <button
+              type="button"
+              class="row-button stacked"
+              [attr.data-task-id]="task.taskId"
+              [attr.aria-current]="selected ? 'true' : null"
+              (click)="select(task.taskId)"
+            >
+              <span class="line">
+                <span class="time"
+                  ><span class="visually-hidden">Task {{ task.taskId }}, started </span
+                  >{{ task.startedAt | facilityTime }}</span
+                >
+                <span class="num duration">{{ task.durationMs | duration }}</span>
+              </span>
+              <span class="line muted">
+                <span>{{ zoneLabels[task.zone] }} · {{ taskTypeLabels[task.taskType] }}</span>
+                @if (task.aboveP90) {
+                  <span class="pill slower">Above P90</span>
+                }
+              </span>
+            </button>
+          </li>
+        }
+      } @else {
+        @for (i of skeletonRows; track i) {
+          <li class="skeleton-item" aria-hidden="true">
+            <span class="line"
+              ><span class="skeleton bar short"></span><span class="skeleton bar short"></span
+            ></span>
+            <span class="line"><span class="skeleton bar wide"></span></span>
+          </li>
+        }
+      }
+    </ul>
+  }
+
+  @if (!tasks.error() && pageMeta(); as meta) {
+    @if (!(tasks.hasValue() && rows().length === 0)) {
+      <nav class="pager" aria-label="Task pages">
+        <span class="muted">
+          {{ meta.totalElements | count }} {{ meta.totalElements === 1 ? 'task' : 'tasks' }} · Page
+          {{ currentPage() + 1 }} of {{ meta.totalPages }}
+        </span>
+        <span class="pager-buttons">
+          <button
+            type="button"
+            class="control"
+            [attr.aria-disabled]="currentPage() === 0"
+            (click)="currentPage() > 0 && goToPage(currentPage() - 1)"
+          >
+            Previous
+          </button>
+          <button
+            type="button"
+            class="control"
+            [attr.aria-disabled]="currentPage() + 1 >= meta.totalPages"
+            (click)="currentPage() + 1 < meta.totalPages && goToPage(currentPage() + 1)"
+          >
+            Next
+          </button>
+        </span>
+      </nav>
+    }
+  }
+</div>

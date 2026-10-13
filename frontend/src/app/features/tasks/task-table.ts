@@ -1,23 +1,95 @@
-import { Component, input, output } from '@angular/core';
-import type { TaskQuery } from '../../core/api/types';
+import {
+  afterRenderEffect,
+  Component,
+  computed,
+  ElementRef,
+  inject,
+  input,
+  linkedSignal,
+  output,
+} from '@angular/core';
+import { TasksApi } from '../../core/api/tasks-api';
+import type { PageMeta, TaskQuery } from '../../core/api/types';
+import { FilterState } from '../../core/filter-state';
+import { CountPipe, DurationPipe, FacilityTimePipe } from '../../core/format';
+import { TASK_TYPE_LABELS, ZONE_LABELS } from '../../core/labels';
+import { toProblem } from '../../core/problem';
+import { Viewport } from '../../core/viewport';
+import { State } from '../../shared/ui/state';
+import { sameQuery } from './same-query';
+
+/** Skeleton rows shown while a page loads. Each is the height of a real row. */
+const SKELETON_ROWS = Array.from({ length: 10 }, (_, i) => i);
 
 /**
  * The shared task table: Start, Zone, Task type, Duration, and an "Above P90" pill.
  * It fetches its own page of tasks for `query`, writes `page` to the URL when paging,
  * highlights `selectedTaskId`, and emits `taskSelect` when a row is chosen.
- * STUB (Phase 1): final inputs and output, placeholder rendering. Agent B builds it.
+ * A table on desktop and stacked rows under 1024 px.
  */
 @Component({
   selector: 'g-task-table',
-  template: `<div class="stub">
-    g-task-table: {{ query().partnerId ?? 'all partners' }}, {{ query().date ?? 'all days' }}, page
-    {{ query().page ?? 0 }}, selected {{ selectedTaskId() ?? 'none' }}
-    <button type="button" (click)="taskSelect.emit(48213)">Open task 48213</button>
-  </div>`,
+  imports: [State, CountPipe, DurationPipe, FacilityTimePipe],
+  templateUrl: './task-table.html',
+  styleUrl: './task-table.css',
 })
 export class TaskTable {
   /** The full API query, including the shared filters and `page`. */
   readonly query = input.required<TaskQuery>();
   readonly selectedTaskId = input<number | null>(null);
   readonly taskSelect = output<number>();
+
+  private readonly filterState = inject(FilterState);
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+  protected readonly isDesktop = inject(Viewport).isDesktop;
+
+  // Only a change in what is asked for refetches (see sameQuery).
+  private readonly request = computed(() => this.query(), { equal: sameQuery });
+  protected readonly tasks = inject(TasksApi).list(this.request);
+
+  protected readonly rows = computed(() => (this.tasks.hasValue() ? this.tasks.value().items : []));
+  protected readonly problem = computed(() => toProblem(this.tasks.error()));
+
+  /** The last page description received, kept while the next page loads so the pager stays put. */
+  protected readonly pageMeta = linkedSignal<PageMeta | undefined, PageMeta | undefined>({
+    source: () => (this.tasks.hasValue() ? this.tasks.value().page : undefined),
+    computation: (next, previous) => next ?? previous?.value,
+  });
+
+  protected readonly currentPage = computed(() => this.query().page ?? 0);
+
+  protected readonly skeletonRows = SKELETON_ROWS;
+  protected readonly zoneLabels = ZONE_LABELS;
+  protected readonly taskTypeLabels = TASK_TYPE_LABELS;
+
+  private previousSelection: number | null = null;
+
+  constructor() {
+    // When the panel closes (an ID becomes null), return focus to that task's row.
+    afterRenderEffect(() => {
+      const selected = this.selectedTaskId();
+      const previous = this.previousSelection;
+      this.previousSelection = selected;
+      if (previous !== null && selected === null) {
+        this.host.nativeElement.querySelector<HTMLElement>(`[data-task-id="${previous}"]`)?.focus();
+      }
+    });
+  }
+
+  protected select(taskId: number): void {
+    this.taskSelect.emit(taskId);
+  }
+
+  protected goToPage(page: number): void {
+    // Page 0 is the default, so it's left out of the URL.
+    this.filterState.setParams({ page: page === 0 ? null : page });
+  }
+
+  protected clearFilters(): void {
+    this.filterState.clearFilters();
+  }
+
+  protected retry(): void {
+    this.tasks.reload();
+  }
 }
