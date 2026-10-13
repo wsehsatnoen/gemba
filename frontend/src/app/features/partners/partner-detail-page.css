@@ -1,0 +1,99 @@
+:host {
+  display: block;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  min-width: 0;
+}
+
+/* The page header brings its own bottom margin; the column gap spaces the regions. */
+g-page-header {
+  margin-bottom: 0;
+}
+
+.region {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.not-found {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+}
+
+.tile-skeletons {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.tile-skeletons .skeleton {
+  height: 128px;
+  border-radius: var(--radius-card);
+}
+
+@media (min-width: 1024px) {
+  .tile-skeletons {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.legend {
+  font-size: var(--text-sm);
+}
+
+.chart-skeleton {
+  height: 220px;
+}
+
+.tasks-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: 32px;
+  padding: 0 var(--space-3);
+  background: var(--accent-soft);
+  color: var(--accent-on-soft);
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  font-size: var(--text-sm);
+}
+
+.chip:hover {
+  border-color: var(--accent);
+}
+
+.above-p90 {
+  margin-left: auto;
+  font-size: var(--text-sm);
+}
+
+/* Desktop: an open task adds a right-hand column for the panel, beside the content. */
+@media (min-width: 1024px) {
+  :host(.with-panel) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) var(--panel-width);
+    gap: var(--space-5);
+    align-items: start;
+  }
+
+  .panel {
+    position: sticky;
+    top: var(--space-4);
+    max-height: calc(100vh - 2 * var(--space-4));
+    overflow-y: auto;
+  }
+}
