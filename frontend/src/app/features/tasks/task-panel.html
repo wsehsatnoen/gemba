@@ -1,0 +1,115 @@
+<section class="panel" aria-labelledby="task-panel-heading" [cdkTrapFocus]="!isDesktop()">
+  <header class="top">
+    @if (!isDesktop()) {
+      <button type="button" class="icon-button" aria-label="Back to tasks" (click)="close()">
+        <span aria-hidden="true">←</span>
+      </button>
+    }
+    <h2 id="task-panel-heading" #heading tabindex="-1">Task {{ taskId() }}</h2>
+    @if (isDesktop()) {
+      <button type="button" class="icon-button" aria-label="Close task" (click)="close()">
+        <span aria-hidden="true">×</span>
+      </button>
+    }
+  </header>
+
+  @if (notFound()) {
+    <div class="not-found">
+      <p>We couldn't find task {{ taskId() }}.</p>
+      <button type="button" class="control" (click)="close()">Back to tasks</button>
+    </div>
+  } @else if (resource.error()) {
+    <g-state status="error" [problem]="problem()" (retry)="resource.reload()" />
+  } @else if (task(); as t) {
+    <p class="meta muted">
+      {{ zoneLabels[t.zone] }} · {{ taskTypeLabels[t.taskType] }} · Port {{ t.port }} ·
+      {{ t.startedAt | facilityDate }}
+    </p>
+
+    <div class="duration-row">
+      <p class="duration num">
+        <span class="visually-hidden">Duration </span>{{ t.durationMs | duration }}
+      </p>
+      @if (t.aboveP90) {
+        <span class="pill slower">Above P90 ({{ t.p90Ms | duration }})</span>
+      }
+    </div>
+
+    <div class="cards">
+      <div class="info-card">
+        <h3 class="card-label muted">Partner</h3>
+        <p class="card-value">{{ t.partnerId ?? 'Not recorded' }}</p>
+        <p class="card-sub muted">{{ partnerSourceLabel() }}</p>
+      </div>
+      <div class="info-card">
+        <h3 class="card-label muted">Bin</h3>
+        <p class="card-value">{{ t.binId }}</p>
+        <p class="card-sub muted">Paired by bin</p>
+      </div>
+    </div>
+
+    <h3 class="moves-heading">Moves on this bin</h3>
+    <ol class="moves">
+      @for (move of t.moves; track move.transactionId) {
+        @let discarded = move.role === 'DISCARDED_START';
+        <li class="move" [class.discarded]="discarded">
+          <span class="time mono">
+            @if (discarded) {
+              <s>{{ move.occurredAt | facilityTime: 'millis' }}</s>
+            } @else {
+              {{ move.occurredAt | facilityTime: 'millis' }}
+            }
+          </span>
+          <span class="what">
+            <span class="type">{{ move.transactionType }}</span>
+            @if (move.fromLocation && move.toLocation) {
+              {{ move.fromLocation }} → {{ move.toLocation }}
+            } @else if (move.fromLocation || move.toLocation) {
+              {{ move.fromLocation ?? move.toLocation }}
+            }
+            @if (move.quantityChange !== null) {
+              <span class="quantity num">
+                {{ signedQuantity(move.quantityChange) }}
+                @if (move.quantityBefore !== null && move.quantityAfter !== null) {
+                  ({{ move.quantityBefore }} → {{ move.quantityAfter }})
+                }
+              </span>
+            }
+          </span>
+          <span class="partner" [class.muted]="!move.partnerId">{{
+            move.partnerId ?? 'No partner ID'
+          }}</span>
+          @if (roleLabels[move.role]; as role) {
+            <span class="pill" [class.accent]="!discarded" [class.neutral]="discarded">{{
+              role
+            }}</span>
+          }
+          @if (move.note) {
+            <span class="note muted">{{ move.note }}</span>
+          }
+        </li>
+      }
+    </ol>
+
+    <p class="footnote muted">
+      Duration = end − latest start on the same bin.
+      @if (t.partnerSource === 'START_MOVE') {
+        The end move has no partner ID, so the partner comes from the start.
+      }
+    </p>
+  } @else {
+    <div class="loading" aria-hidden="true">
+      <span class="skeleton sk-meta"></span>
+      <span class="skeleton sk-duration"></span>
+      <div class="cards">
+        <span class="skeleton sk-card"></span>
+        <span class="skeleton sk-card"></span>
+      </div>
+      <span class="skeleton sk-heading"></span>
+      @for (i of skeletonMoves; track i) {
+        <span class="skeleton sk-move"></span>
+      }
+    </div>
+    <p class="visually-hidden" role="status">Loading task {{ taskId() }}</p>
+  }
+</section>
