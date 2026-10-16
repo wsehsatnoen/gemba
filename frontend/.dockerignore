@@ -11,6 +11,7 @@ tmp
 playwright-report
 test-results
 e2e/screenshots
+screenshots
 .vscode
 .idea
 *.log

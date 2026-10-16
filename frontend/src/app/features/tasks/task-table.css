@@ -10,6 +10,15 @@
   overflow: hidden;
 }
 
+g-state {
+  display: block;
+  padding: var(--space-6) var(--space-4);
+}
+
+g-state p {
+  margin-bottom: var(--space-3);
+}
+
 /* Desktop table. Each row is 44px tall, and so is each skeleton row. */
 table {
   width: 100%;

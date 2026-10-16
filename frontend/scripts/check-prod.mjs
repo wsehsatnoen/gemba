@@ -3,8 +3,9 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
-// Must match MOCK_MARKER in src/mocks/marker.ts.
-const MARKER = 'gemba-mock-fixtures-7c1e';
+// MOCK_MARKER from src/mocks/marker.ts (the interceptor), plus IDs that only appear in the
+// fixtures, so a fixture that leaks in without the interceptor is caught too.
+const MARKERS = ['gemba-mock-fixtures-7c1e', 'SIMUSR0142', 'SIMTU004417'];
 const DIST = 'dist';
 
 function files(dir) {
@@ -14,7 +15,9 @@ function files(dir) {
   });
 }
 
-const offenders = files(DIST).filter((path) => readFileSync(path, 'utf8').includes(MARKER));
+const offenders = files(DIST).filter((path) =>
+  MARKERS.some((marker) => readFileSync(path, 'utf8').includes(marker)),
+);
 
 if (offenders.length > 0) {
   console.error(`Mock code found in the production build:\n  ${offenders.join('\n  ')}`);
