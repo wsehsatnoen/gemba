@@ -1,0 +1,117 @@
+<g-page-header heading="Partners">
+  <g-partner-search headerStart [value]="filterState.q()" (searched)="search($event)" />
+</g-page-header>
+
+<section
+  class="card list"
+  aria-labelledby="partner-list-heading"
+  [attr.aria-busy]="partners.isLoading()"
+>
+  <div class="list-header">
+    <h2 id="partner-list-heading">Partners by task count</h2>
+    @if (page(); as p) {
+      <span class="muted num"
+        >{{ p.page.totalElements | count }}
+        {{ p.page.totalElements === 1 ? 'partner' : 'partners' }}</span
+      >
+    }
+  </div>
+
+  @if (page(); as p) {
+    @if (p.items.length === 0) {
+      <g-state status="empty">
+        <p>
+          @if (filterState.q()) {
+            No partners match “{{ filterState.q() }}”.
+          } @else {
+            No partners match these filters.
+          }
+        </p>
+        <button type="button" class="control" (click)="filterState.clearFilters()">
+          Clear filters
+        </button>
+      </g-state>
+    } @else if (isDesktop()) {
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">Partner</th>
+            <th scope="col" class="end">Tasks</th>
+            <th scope="col" class="end">Days worked</th>
+            <th scope="col" class="end">Pace</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (partner of p.items; track partner.partnerId) {
+            <tr>
+              <td>
+                <a
+                  class="row-link"
+                  [routerLink]="['/partners', partner.partnerId]"
+                  [queryParams]="filterState.linkParams()"
+                  >{{ partner.partnerId }}</a
+                >
+              </td>
+              <td class="end">{{ partner.taskCount | count }}</td>
+              <td class="end">{{ partner.daysWorked | count }}</td>
+              <td class="end">
+                <g-pace-pill [pacePct]="partner.pacePct" [comparison]="partner.comparison" />
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    } @else {
+      <ul class="stacked">
+        @for (partner of p.items; track partner.partnerId) {
+          <li>
+            <a
+              class="stacked-row"
+              [routerLink]="['/partners', partner.partnerId]"
+              [queryParams]="filterState.linkParams()"
+            >
+              <span class="stacked-text">
+                <span class="partner-id">{{ partner.partnerId }}</span>
+                <span class="muted num"
+                  >{{ partner.taskCount | count }} tasks · {{ partner.daysWorked | count }} days
+                  worked</span
+                >
+              </span>
+              <g-pace-pill [pacePct]="partner.pacePct" [comparison]="partner.comparison" />
+            </a>
+          </li>
+        }
+      </ul>
+    }
+
+    @if (p.page.totalPages > 1) {
+      <nav class="pager" aria-label="Partner pages">
+        <button
+          type="button"
+          class="control"
+          [disabled]="p.page.number === 0"
+          (click)="goToPage(p.page.number - 1)"
+        >
+          Previous
+        </button>
+        <span class="muted num">Page {{ p.page.number + 1 }} of {{ p.page.totalPages }}</span>
+        <button
+          type="button"
+          class="control"
+          [disabled]="p.page.number + 1 >= p.page.totalPages"
+          (click)="goToPage(p.page.number + 1)"
+        >
+          Next
+        </button>
+      </nav>
+    }
+  } @else if (partners.error()) {
+    <g-state status="error" [problem]="problem()" (retry)="partners.reload()" />
+  } @else {
+    <ul class="skeleton-rows" aria-label="Loading partners">
+      @for (row of skeletonRows; track row) {
+        <li><span class="skeleton"></span></li>
+      }
+    </ul>
+  }
+</section>

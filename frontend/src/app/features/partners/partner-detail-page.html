@@ -1,0 +1,130 @@
+<div class="content">
+  <g-page-header>
+    <g-partner-search headerStart (searched)="search($event)" />
+  </g-page-header>
+
+  @if (notFound()) {
+    <section class="card not-found">
+      <h1>We couldn't find partner {{ partnerId() }}.</h1>
+      <p class="muted">Check the ID, or pick a partner from the list.</p>
+      <a routerLink="/partners" [queryParams]="filterState.linkParams()">Back to partners</a>
+    </section>
+  } @else {
+    <section class="region" aria-label="Partner summary" [attr.aria-busy]="summary.isLoading()">
+      @if (summary.error()) {
+        <h1>{{ partnerId() }}</h1>
+        <g-state
+          class="card"
+          status="error"
+          [problem]="summaryProblem()"
+          (retry)="summary.reload()"
+        />
+      } @else {
+        <g-partner-header
+          [partnerId]="partnerId()"
+          [summary]="summary.hasValue() ? summary.value() : undefined"
+        />
+      }
+    </section>
+
+    <section
+      class="region"
+      aria-labelledby="tiles-heading"
+      [attr.aria-busy]="comparison.isLoading()"
+    >
+      <h2 id="tiles-heading" class="visually-hidden">Pace by zone and task type</h2>
+      @if (comparison.hasValue()) {
+        @if (comparison.value().length === 0) {
+          <g-state class="card" status="empty">
+            <p>No zone and task type comparisons match these filters.</p>
+            <button type="button" class="control" (click)="filterState.clearFilters()">
+              Clear filters
+            </button>
+          </g-state>
+        } @else {
+          <g-comparison-tiles [cells]="comparison.value()" [minSampleSize]="minSampleSize()" />
+        }
+      } @else if (comparison.error()) {
+        <g-state
+          class="card"
+          status="error"
+          [problem]="comparisonProblem()"
+          (retry)="comparison.reload()"
+        />
+      } @else {
+        <div class="tile-skeletons" aria-hidden="true">
+          @for (tile of [1, 2, 3, 4]; track tile) {
+            <span class="skeleton"></span>
+          }
+        </div>
+      }
+      <p class="legend muted">
+        Pace = facility median ÷ partner median. Green is faster, amber slower, gray under
+        {{ minSampleSize() | count }} tasks.
+      </p>
+    </section>
+
+    <section
+      class="card region"
+      aria-labelledby="daily-heading"
+      [attr.aria-busy]="daily.isLoading()"
+    >
+      <h2 id="daily-heading">Daily pace</h2>
+      @if (days(); as days) {
+        @if (days.length === 0) {
+          <g-state status="empty">
+            <p>No days worked match these filters.</p>
+            <button type="button" class="control" (click)="filterState.clearFilters()">
+              Clear filters
+            </button>
+          </g-state>
+        } @else {
+          <g-line-chart
+            [points]="points()"
+            [reference]="reference"
+            [selectedId]="filterState.day()"
+            [format]="formatPace"
+            [label]="chartLabel()"
+            (pointSelect)="selectDay($event)"
+          />
+        }
+      } @else if (daily.error()) {
+        <g-state status="error" [problem]="dailyProblem()" (retry)="daily.reload()" />
+      } @else {
+        <span class="skeleton chart-skeleton" aria-hidden="true"></span>
+      }
+    </section>
+
+    <section class="card region" aria-labelledby="tasks-heading">
+      <div class="tasks-header">
+        <h2 id="tasks-heading">Tasks</h2>
+        @if (dayLabel(); as label) {
+          <button
+            type="button"
+            class="chip"
+            [attr.aria-label]="'Remove day filter ' + label"
+            (click)="clearDay()"
+          >
+            {{ label }} <span aria-hidden="true">×</span>
+          </button>
+        }
+        @if (aboveP90() !== null) {
+          <span class="above-p90 muted num">{{ aboveP90() | count }} above P90</span>
+        }
+      </div>
+      <g-task-table
+        [query]="taskQuery()"
+        [selectedTaskId]="filterState.task()"
+        (taskSelect)="selectTask($event)"
+      />
+    </section>
+  }
+</div>
+
+@if (filterState.task(); as taskId) {
+  @if (!notFound()) {
+    <div class="panel">
+      <g-task-panel [taskId]="taskId" (closed)="closeTask()" />
+    </div>
+  }
+}
