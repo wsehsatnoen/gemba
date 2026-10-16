@@ -93,14 +93,14 @@ test.describe('partner detail', () => {
     await chip.click();
     await expect(page).not.toHaveURL(/day=/);
     await expect(chip).toHaveCount(0);
-    await expect(page.getByText('above P90')).toHaveCount(0);
+    await expect(page.locator('g-partner-detail-page .above-p90')).toHaveCount(0);
   });
 
   test('an open task gets a panel column beside the content on desktop', async ({ page }, info) => {
     test.skip(info.project.name !== 'desktop', 'The panel is full screen on mobile.');
     await page.goto('/partners/SIMUSR0142?day=2027-01-19&task=48213');
-    const content = await page.locator('g-partner-detail-page .content').boundingBox();
-    const panel = await page.locator('g-partner-detail-page .panel').boundingBox();
+    const content = await page.locator('g-partner-detail-page > .content').boundingBox();
+    const panel = await page.locator('g-partner-detail-page > .panel').boundingBox();
     expect(content && panel).toBeTruthy();
     expect(panel!.x).toBeGreaterThanOrEqual(content!.x + content!.width);
     expect(panel!.width).toBeGreaterThan(350);

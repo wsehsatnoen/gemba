@@ -38,7 +38,10 @@ test('filters live in the URL and survive reload, back, and forward', async ({ p
 
 test('nav links keep the filters', async ({ page }) => {
   await page.goto('/?zone=AMBIENT&taskType=CYCLE_COUNT');
-  await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Tasks' }).click();
+  const tasks = page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Tasks' });
+  // The links pick up the filters when the first navigation ends; wait for that before clicking.
+  await expect(tasks).toHaveAttribute('href', /zone=AMBIENT/);
+  await tasks.click();
   await expect(page).toHaveURL(/\/tasks\?zone=AMBIENT&taskType=CYCLE_COUNT/);
 });
 
