@@ -23,7 +23,6 @@ import { MedianGrid } from './median-grid';
 import { OverviewPage } from './overview-page';
 import { OverviewSummary } from './overview-summary';
 import { regionStatus } from './region-status';
-import { sameParams } from './stable-filters';
 import { WeekdayChart } from './weekday-chart';
 
 const META: Meta = {
@@ -101,14 +100,6 @@ describe('regionStatus', () => {
     expect(regionStatus(resource(true, undefined))).toBe('loading');
     expect(regionStatus(resource(false, new Error('x')))).toBe('error');
     expect(regionStatus(resource(false, undefined))).toBe('ready');
-  });
-});
-
-describe('sameParams', () => {
-  it('compares filter values, not object identity', () => {
-    expect(sameParams({ from: 'a', to: 'b' }, { from: 'a', to: 'b' })).toBe(true);
-    expect(sameParams({ from: 'a', to: 'b' }, { from: 'a', to: 'c' })).toBe(false);
-    expect(sameParams({ from: 'a', to: 'b' }, { from: 'a', to: 'b', zone: 'CHILLED' })).toBe(false);
   });
 });
 
@@ -190,9 +181,11 @@ describe('MedianGrid', () => {
     // Reverse the API order to prove cells are found by zone and task type, not position.
     await flush(r, '/api/analytics/zone-task-type', [...ZONE_TASK_TYPE_STATS].reverse());
 
-    const headers = [...r.el.querySelectorAll('thead th')].map((th) => th.textContent!.trim());
+    const headers = [...r.el.querySelectorAll('table.grid > thead th')].map((th) =>
+      th.textContent!.trim(),
+    );
     expect(headers).toEqual(['Ambient', 'Chilled']);
-    const rows = [...r.el.querySelectorAll('tbody tr')].map((tr) => ({
+    const rows = [...r.el.querySelectorAll('table.grid > tbody > tr')].map((tr) => ({
       head: tr.querySelector('th')!.textContent!.trim(),
       medians: [...tr.querySelectorAll('.median')].map((m) => m.textContent!.trim()),
       p90s: [...tr.querySelectorAll('.p90')].map((m) => m.textContent!.trim()),

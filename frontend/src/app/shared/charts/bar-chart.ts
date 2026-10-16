@@ -40,27 +40,30 @@ const MAX_BAR_WIDTH = 56;
         [attr.y2]="baseline()"
       />
     </svg>
-    <table class="visually-hidden">
-      <caption>
-        {{
-          label()
-        }}
-      </caption>
-      <thead>
-        <tr>
-          <th scope="col">{{ headers()[0] }}</th>
-          <th scope="col">{{ headers()[1] }}</th>
-        </tr>
-      </thead>
-      <tbody>
-        @for (bar of layout(); track bar.label) {
+    <!-- A table ignores width: 1px, so the wrapper clips it and keeps it out of the page width. -->
+    <div class="visually-hidden">
+      <table>
+        <caption>
+          {{
+            label()
+          }}
+        </caption>
+        <thead>
           <tr>
-            <th scope="row">{{ bar.label }}</th>
-            <td>{{ bar.value }}</td>
+            <th scope="col">{{ headers()[0] }}</th>
+            <th scope="col">{{ headers()[1] }}</th>
           </tr>
-        }
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          @for (bar of layout(); track bar.label) {
+            <tr>
+              <th scope="row">{{ bar.label }}</th>
+              <td>{{ bar.value }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
   `,
   styles: `
     :host {

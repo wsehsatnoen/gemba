@@ -53,7 +53,7 @@ describe('BarChart', () => {
 
   it('lists the formatted values in a hidden table with the given headers', async () => {
     const el = await render(WEEKDAYS);
-    const table = el.querySelector('table.visually-hidden');
+    const table = el.querySelector('.visually-hidden table');
     const headers = [...(table?.querySelectorAll('thead th') ?? [])].map((th) => th.textContent);
     expect(headers).toEqual(['Day', 'Tasks']);
     const cells = [...(table?.querySelectorAll('tbody tr:first-child > *') ?? [])];

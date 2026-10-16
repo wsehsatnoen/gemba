@@ -11,7 +11,6 @@ import { Sparkline } from '../../shared/charts/sparkline';
 import { State } from '../../shared/ui/state';
 import { EmptyRange } from './empty-range';
 import { regionStatus } from './region-status';
-import { stableApiParams } from './stable-filters';
 
 export interface GridCell {
   zone: Zone;
@@ -44,7 +43,7 @@ export interface GridRow {
 })
 export class MedianGrid {
   private readonly filterState = inject(FilterState);
-  protected readonly stats = inject(AnalyticsApi).zoneTaskType(stableApiParams(this.filterState));
+  protected readonly stats = inject(AnalyticsApi).zoneTaskType(this.filterState.apiParams);
 
   protected readonly zones = ZONES;
   protected readonly zoneLabels = ZONE_LABELS;

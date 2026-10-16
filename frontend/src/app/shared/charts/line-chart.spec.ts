@@ -118,7 +118,7 @@ describe('LineChart', () => {
 
   it('lists every day in a hidden table, with a dash for no value', async () => {
     const { el } = await render();
-    const rows = [...el.querySelectorAll('table.visually-hidden tbody tr')].map((tr) =>
+    const rows = [...el.querySelectorAll('.visually-hidden table tbody tr')].map((tr) =>
       [...tr.children].map((cell) => cell.textContent).join(' | '),
     );
     expect(rows).toEqual([

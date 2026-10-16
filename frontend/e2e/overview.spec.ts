@@ -27,7 +27,7 @@ test('shows the fixture numbers', async ({ page }) => {
 
 test('the grid sits beside the chart on desktop and stacks on mobile', async ({ page }, info) => {
   await page.goto('/');
-  await expect(grid(page).locator('table')).toBeVisible();
+  await expect(grid(page).locator('table.grid')).toBeVisible();
   const g = (await grid(page).boundingBox())!;
   const w = (await weekday(page).boundingBox())!;
   const cards = (await summary(page).boundingBox())!;
@@ -117,7 +117,7 @@ test('keyboard: Tab from the filter bar reaches a grid cell and Enter opens it',
   page,
 }) => {
   await page.goto('/');
-  await expect(grid(page).locator('table')).toBeVisible();
+  await expect(grid(page).locator('table.grid')).toBeVisible();
   const filters = page.getByRole('group', { name: 'Filters' });
   const controls = filters.locator('button:visible, select:visible, input:visible');
   await controls.last().focus();

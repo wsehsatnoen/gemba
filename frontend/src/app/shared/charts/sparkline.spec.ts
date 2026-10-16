@@ -38,7 +38,7 @@ describe('Sparkline', () => {
       format: formatDuration,
       pointLabels: ['Jan 4', 'Jan 5'],
     });
-    const table = el.querySelector('table.visually-hidden');
+    const table = el.querySelector('.visually-hidden table');
     expect(table?.querySelector('caption')?.textContent?.trim()).toBe(
       'Daily median, Ambient cycle count',
     );

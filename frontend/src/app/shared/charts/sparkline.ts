@@ -27,27 +27,30 @@ const PAD = 4;
         <circle class="end" [attr.cx]="end.x" [attr.cy]="end.y" r="2.5" />
       }
     </svg>
-    <table class="visually-hidden">
-      <caption>
-        {{
-          label()
-        }}
-      </caption>
-      <thead>
-        <tr>
-          <th scope="col">Point</th>
-          <th scope="col">Value</th>
-        </tr>
-      </thead>
-      <tbody>
-        @for (row of rows(); track $index) {
+    <!-- A table ignores width: 1px, so the wrapper clips it and keeps it out of the page width. -->
+    <div class="visually-hidden">
+      <table>
+        <caption>
+          {{
+            label()
+          }}
+        </caption>
+        <thead>
           <tr>
-            <th scope="row">{{ row.label }}</th>
-            <td>{{ row.value }}</td>
+            <th scope="col">Point</th>
+            <th scope="col">Value</th>
           </tr>
-        }
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          @for (row of rows(); track $index) {
+            <tr>
+              <th scope="row">{{ row.label }}</th>
+              <td>{{ row.value }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
   `,
   styles: `
     :host {

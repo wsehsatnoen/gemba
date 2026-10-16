@@ -132,29 +132,32 @@ const COMPARISON_CLASS: Record<Comparison, string> = {
         </text>
       }
     </svg>
-    <table class="visually-hidden">
-      <caption>
-        {{
-          label()
-        }}
-      </caption>
-      <thead>
-        <tr>
-          <th scope="col">{{ headers()[0] }}</th>
-          <th scope="col">{{ headers()[1] }}</th>
-          <th scope="col">Comparison</th>
-        </tr>
-      </thead>
-      <tbody>
-        @for (row of rows(); track row.id) {
+    <!-- A table ignores width: 1px, so the wrapper clips it and keeps it out of the page width. -->
+    <div class="visually-hidden">
+      <table>
+        <caption>
+          {{
+            label()
+          }}
+        </caption>
+        <thead>
           <tr>
-            <th scope="row">{{ row.label }}</th>
-            <td>{{ row.value }}</td>
-            <td>{{ row.comparison }}</td>
+            <th scope="col">{{ headers()[0] }}</th>
+            <th scope="col">{{ headers()[1] }}</th>
+            <th scope="col">Comparison</th>
           </tr>
-        }
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          @for (row of rows(); track row.id) {
+            <tr>
+              <th scope="row">{{ row.label }}</th>
+              <td>{{ row.value }}</td>
+              <td>{{ row.comparison }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
   `,
   styles: `
     :host {
