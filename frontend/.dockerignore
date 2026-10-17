@@ -1,0 +1,22 @@
+# Keep the build context small and the image build reproducible: dependencies are installed
+# fresh by npm ci, and the build output is produced inside the image.
+node_modules
+dist
+.angular
+coverage
+out-tsc
+tmp
+
+# Test output and editor files the image never needs.
+playwright-report
+test-results
+e2e/screenshots
+screenshots
+.vscode
+.idea
+*.log
+.DS_Store
+
+# Not part of the build.
+Dockerfile
+.dockerignore

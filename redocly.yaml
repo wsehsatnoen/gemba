@@ -1,0 +1,6 @@
+# Lint config for api/openapi.yaml (picked up by `npx @redocly/cli lint` from the repo root).
+extends:
+  - recommended
+rules:
+  # GET /api/meta takes no input, so it has no honest 4xx response to declare.
+  operation-4xx-response: off

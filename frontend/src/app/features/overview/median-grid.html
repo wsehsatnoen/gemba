@@ -1,0 +1,74 @@
+<section class="card" aria-labelledby="median-grid-heading">
+  <h2 id="median-grid-heading">Median task time</h2>
+
+  @switch (status()) {
+    @case ('loading') {
+      <div class="skeleton-grid" aria-busy="true">
+        <span class="visually-hidden">Loading median task times</span>
+        @for (i of [0, 1, 2, 3]; track i) {
+          <span class="skeleton skeleton-cell" aria-hidden="true"></span>
+        }
+      </div>
+    }
+    @case ('error') {
+      <g-state status="error" [problem]="problem()" (retry)="stats.reload()" />
+    }
+    @default {
+      @if (rows(); as rows) {
+        <table class="grid" aria-labelledby="median-grid-heading">
+          <colgroup>
+            <col class="row-head-col" />
+            @for (zone of zones; track zone) {
+              <col />
+            }
+          </colgroup>
+          <thead>
+            <tr>
+              <td></td>
+              @for (zone of zones; track zone) {
+                <th scope="col">{{ zoneLabels[zone] }}</th>
+              }
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of rows; track row.taskType) {
+              <tr>
+                <th scope="row">{{ row.label }}</th>
+                @for (cell of row.cells; track cell.zone) {
+                  <td>
+                    @if (cell.stat; as stat) {
+                      <div class="cell">
+                        <!-- The link's ::after covers the whole cell, so the cell is one target. -->
+                        <a class="cell-link" routerLink="/tasks" [queryParams]="cell.queryParams">
+                          <span class="visually-hidden">{{ cell.label }}, median </span>
+                          <span class="median num">{{ stat.medianMs | duration }}</span>
+                          <span class="count num"
+                            >{{ stat.taskCount | count }} <span class="muted">tasks</span></span
+                          >
+                          <span class="p90 num muted">P90 {{ stat.p90Ms | duration }}</span>
+                        </a>
+                        <g-sparkline
+                          class="spark"
+                          [points]="cell.points"
+                          [label]="'Daily median, ' + cell.label"
+                        />
+                      </div>
+                    } @else {
+                      <div class="cell excluded">
+                        <span aria-hidden="true">—</span>
+                        <span class="visually-hidden">{{ cell.label }}: </span>
+                        <span class="excluded-note">Not in these filters</span>
+                      </div>
+                    }
+                  </td>
+                }
+              </tr>
+            }
+          </tbody>
+        </table>
+      } @else {
+        <g-empty-range />
+      }
+    }
+  }
+</section>

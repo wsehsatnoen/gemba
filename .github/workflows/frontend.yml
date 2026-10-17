@@ -1,0 +1,115 @@
+# Front end CI.
+# Pull requests: lint, unit tests, production build, the no-mock-code check, the OpenAPI lint, the
+# generated-types check, and Playwright against the mock build.
+# Pushes to main: the same checks, then an ARM64 image pushed to GHCR. The Pi only pulls it;
+# nothing is ever built on the Pi.
+name: frontend
+
+on:
+  pull_request:
+    paths:
+      - 'frontend/**'
+      - 'api/**'
+      - 'redocly.yaml'
+      - '.github/workflows/frontend.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'frontend/**'
+      - 'api/**'
+      - 'redocly.yaml'
+      - '.github/workflows/frontend.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: frontend-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - run: npm ci
+
+      - run: npm run lint
+
+      - run: npm test
+
+      - run: npm run build
+
+      # Rebuilds with the production configuration and fails if mock code is in the bundle.
+      - run: npm run check:prod
+
+      # From the repo root, so redocly.yaml applies. Uses the CLI version pinned in the lockfile.
+      - name: Lint the OpenAPI contract
+        working-directory: .
+        run: frontend/node_modules/.bin/redocly lint api/openapi.yaml
+
+      # The generated types are committed; they must match the contract.
+      - name: Check that the API types are up to date
+        run: |
+          npm run api:types
+          git diff --exit-code -- src/app/api/schema.d.ts
+
+      - name: Install Playwright's Chromium
+        run: npx playwright install --with-deps chromium
+
+      # playwright.config.ts starts the mock dev server itself.
+      - run: npm run e2e
+
+      - name: Upload the Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v5
+        with:
+          name: playwright-report
+          path: |
+            frontend/playwright-report
+            frontend/test-results
+          retention-days: 14
+
+  image:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v5
+
+      # The Dockerfile builds Angular on the runner's own platform ($BUILDPLATFORM) and only
+      # copies files into the arm64 nginx stage, so no QEMU emulation is needed.
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: frontend
+          platforms: linux/arm64
+          push: true
+          tags: |
+            ghcr.io/wsehsatnoen/gemba-frontend:latest
+            ghcr.io/wsehsatnoen/gemba-frontend:${{ github.sha }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,scope=frontend,mode=max

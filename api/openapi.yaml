@@ -1,0 +1,805 @@
+openapi: 3.1.0
+info:
+  title: gemba API
+  version: 0.1.0
+  summary: Warehouse task analytics. All data is synthetic.
+  description: |
+    The contract between the gemba Spring backend and the Angular front end.
+
+    The backend owns every number: pairing, durations, medians, P90s, pace, gaps,
+    counts, flags, comparison bands, and the minimum sample size. The front end only
+    displays and formats what this API returns.
+
+    Conventions:
+    - Durations are integer milliseconds and end in `Ms`.
+    - Pace (`pacePct`) is facility median duration ÷ partner median duration × 100,
+      so 100 is the facility median and higher is faster.
+    - Dates are `YYYY-MM-DD` in the facility time zone (see `GET /api/meta`).
+      Timestamps are ISO 8601 with an offset.
+    - Errors are `application/problem+json` (RFC 9457).
+    - Lists are paged with a zero-based `page` and a `size` from 1 to 100 (default 25).
+  license:
+    name: MIT
+    identifier: MIT
+servers:
+  - url: /
+    description: Same origin. The front end calls relative `/api/...` URLs.
+security: []
+tags:
+  - name: meta
+    description: Dataset metadata the front end needs at startup.
+  - name: analytics
+    description: Facility-wide figures.
+  - name: partners
+    description: Partner search, summaries, and comparisons.
+  - name: tasks
+    description: Paired tasks and the moves behind them.
+
+paths:
+  /api/meta:
+    get:
+      tags: [meta]
+      operationId: getMeta
+      summary: Dataset metadata
+      description: Default date range, facility time zone, dataset label, and the minimum sample size for comparisons.
+      responses:
+        '200':
+          description: Dataset metadata.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Meta'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /api/analytics/summary:
+    get:
+      tags: [analytics]
+      operationId: getSummary
+      summary: Summary figures for the overview cards
+      parameters:
+        - $ref: '#/components/parameters/From'
+        - $ref: '#/components/parameters/To'
+        - $ref: '#/components/parameters/Zone'
+        - $ref: '#/components/parameters/TaskTypeFilter'
+      responses:
+        '200':
+          description: Summary figures for the filtered range.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Summary'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /api/analytics/zone-task-type:
+    get:
+      tags: [analytics]
+      operationId: getZoneTaskTypeStats
+      summary: Median and P90 per zone and task type
+      description: One entry per zone and task type combination that matches the filters, with a daily median series for the sparkline.
+      parameters:
+        - $ref: '#/components/parameters/From'
+        - $ref: '#/components/parameters/To'
+        - $ref: '#/components/parameters/Zone'
+        - $ref: '#/components/parameters/TaskTypeFilter'
+      responses:
+        '200':
+          description: Stats per zone and task type.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ZoneTaskTypeStat'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /api/analytics/weekday:
+    get:
+      tags: [analytics]
+      operationId: getWeekdayStats
+      summary: Average tasks and task hours per weekday
+      description: Averages per operating day, one entry per weekday that has at least one operating day in the range, Monday first.
+      parameters:
+        - $ref: '#/components/parameters/From'
+        - $ref: '#/components/parameters/To'
+        - $ref: '#/components/parameters/Zone'
+        - $ref: '#/components/parameters/TaskTypeFilter'
+      responses:
+        '200':
+          description: Stats per weekday.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/WeekdayStat'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /api/partners:
+    get:
+      tags: [partners]
+      operationId: listPartners
+      summary: Search and page partners
+      description: Partners with at least one task matching the filters. The default sort is task count, not pace.
+      parameters:
+        - $ref: '#/components/parameters/From'
+        - $ref: '#/components/parameters/To'
+        - $ref: '#/components/parameters/Zone'
+        - $ref: '#/components/parameters/TaskTypeFilter'
+        - name: q
+          in: query
+          description: Case-insensitive substring of the partner ID.
+          schema:
+            type: string
+            maxLength: 32
+        - name: sort
+          in: query
+          schema:
+            $ref: '#/components/schemas/PartnerSort'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200':
+          description: One page of partners.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartnerPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /api/partners/{partnerId}:
+    get:
+      tags: [partners]
+      operationId: getPartner
+      summary: Partner summary for the detail header
+      parameters:
+        - $ref: '#/components/parameters/PartnerId'
+        - $ref: '#/components/parameters/From'
+        - $ref: '#/components/parameters/To'
+        - $ref: '#/components/parameters/Zone'
+        - $ref: '#/components/parameters/TaskTypeFilter'
+      responses:
+        '200':
+          description: Partner summary for the filtered range.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartnerSummary'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /api/partners/{partnerId}/comparison:
+    get:
+      tags: [partners]
+      operationId: getPartnerComparison
+      summary: Partner vs facility per zone and task type
+      description: |
+        One cell per zone and task type combination that matches the filters (four when
+        `zone` and `taskType` are omitted), including combinations where the partner has
+        too few tasks, which come back as `INSUFFICIENT_SAMPLE` with null partner figures.
+      parameters:
+        - $ref: '#/components/parameters/PartnerId'
+        - $ref: '#/components/parameters/From'
+        - $ref: '#/components/parameters/To'
+        - $ref: '#/components/parameters/Zone'
+        - $ref: '#/components/parameters/TaskTypeFilter'
+      responses:
+        '200':
+          description: Comparison cells.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ComparisonCell'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /api/partners/{partnerId}/daily:
+    get:
+      tags: [partners]
+      operationId: getPartnerDaily
+      summary: Partner pace per day worked
+      description: One entry per day the partner worked in the range, oldest first.
+      parameters:
+        - $ref: '#/components/parameters/PartnerId'
+        - $ref: '#/components/parameters/From'
+        - $ref: '#/components/parameters/To'
+        - $ref: '#/components/parameters/Zone'
+        - $ref: '#/components/parameters/TaskTypeFilter'
+      responses:
+        '200':
+          description: Days worked.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PartnerDay'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /api/tasks:
+    get:
+      tags: [tasks]
+      operationId: listTasks
+      summary: Search and page tasks
+      parameters:
+        - $ref: '#/components/parameters/From'
+        - $ref: '#/components/parameters/To'
+        - $ref: '#/components/parameters/Zone'
+        - $ref: '#/components/parameters/TaskTypeFilter'
+        - name: partnerId
+          in: query
+          description: Only tasks attributed to this partner.
+          schema:
+            $ref: '#/components/schemas/PartnerIdValue'
+        - name: date
+          in: query
+          description: Only tasks that started on this facility date. Narrows `from` and `to`.
+          schema:
+            type: string
+            format: date
+        - name: aboveP90
+          in: query
+          description: When true, only tasks whose duration is above the P90 for their zone and task type.
+          schema:
+            type: boolean
+        - name: sort
+          in: query
+          schema:
+            $ref: '#/components/schemas/TaskSort'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200':
+          description: One page of tasks.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /api/tasks/{taskId}:
+    get:
+      tags: [tasks]
+      operationId: getTask
+      summary: One task with the moves on its bin
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+      responses:
+        '200':
+          description: The task and its moves, oldest first.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskDetail'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+components:
+  parameters:
+    From:
+      name: from
+      in: query
+      description: First facility date, inclusive. Defaults to `Meta.dataFrom`.
+      schema:
+        type: string
+        format: date
+    To:
+      name: to
+      in: query
+      description: Last facility date, inclusive. Defaults to `Meta.dataTo`.
+      schema:
+        type: string
+        format: date
+    Zone:
+      name: zone
+      in: query
+      description: Omit for both zones.
+      schema:
+        $ref: '#/components/schemas/Zone'
+    TaskTypeFilter:
+      name: taskType
+      in: query
+      description: Omit for both task types.
+      schema:
+        $ref: '#/components/schemas/TaskType'
+    Page:
+      name: page
+      in: query
+      description: Zero-based page number.
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+    Size:
+      name: size
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 25
+    PartnerId:
+      name: partnerId
+      in: path
+      required: true
+      schema:
+        $ref: '#/components/schemas/PartnerIdValue'
+
+  responses:
+    BadRequest:
+      description: A parameter is invalid.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    NotFound:
+      description: No partner or task with that ID.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    ServerError:
+      description: Unexpected server error.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+
+  schemas:
+    Zone:
+      type: string
+      enum: [AMBIENT, CHILLED]
+    TaskType:
+      type: string
+      enum: [CYCLE_COUNT, BIN_MAINTENANCE]
+    Comparison:
+      type: string
+      description: |
+        How a partner compares with the facility. The backend decides the bands and the
+        minimum sample (`Meta.minSampleSize`); the front end only maps the value to a color.
+      enum: [FASTER, SIMILAR, SLOWER, INSUFFICIENT_SAMPLE]
+    Weekday:
+      type: string
+      enum: [MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, SUNDAY]
+    PartnerSort:
+      type: string
+      enum: ['taskCount,desc', 'partnerId,asc', 'daysWorked,desc']
+      default: 'taskCount,desc'
+    TaskSort:
+      type: string
+      enum: ['startedAt,desc', 'durationMs,desc']
+      default: 'startedAt,desc'
+    PartnerIdValue:
+      type: string
+      maxLength: 32
+      examples: [SIMUSR0142]
+    DurationMs:
+      type: integer
+      format: int64
+      minimum: 0
+      description: Duration in milliseconds.
+    PacePct:
+      type: number
+      description: Facility median ÷ partner median × 100. 100 is the facility median; higher is faster.
+
+    Problem:
+      type: object
+      description: RFC 9457 Problem Details.
+      required: [type, title, status]
+      properties:
+        type:
+          type: string
+          format: uri-reference
+          default: about:blank
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        instance:
+          type: string
+          format: uri-reference
+        errors:
+          type: array
+          description: Field-level validation errors, for a 400.
+          items:
+            type: object
+            required: [field, message]
+            properties:
+              field:
+                type: string
+              message:
+                type: string
+
+    PageMeta:
+      type: object
+      required: [number, size, totalElements, totalPages]
+      properties:
+        number:
+          type: integer
+          minimum: 0
+          description: Zero-based page number.
+        size:
+          type: integer
+          minimum: 1
+        totalElements:
+          type: integer
+          format: int64
+          minimum: 0
+        totalPages:
+          type: integer
+          minimum: 0
+
+    Meta:
+      type: object
+      required: [datasetLabel, dataFrom, dataTo, facilityTimeZone, minSampleSize]
+      properties:
+        datasetLabel:
+          type: string
+          examples: [Synthetic data]
+        dataFrom:
+          type: string
+          format: date
+          description: First facility date with data.
+        dataTo:
+          type: string
+          format: date
+          description: Last facility date with data.
+        facilityTimeZone:
+          type: string
+          description: IANA time zone. Every date and time is shown in this zone.
+          examples: [America/Chicago]
+        minSampleSize:
+          type: integer
+          minimum: 1
+          description: Fewest tasks a comparison needs before it is anything but `INSUFFICIENT_SAMPLE`.
+
+    Summary:
+      type: object
+      required:
+        - tasksPaired
+        - rowsImported
+        - operatingDays
+        - tasksPerDay
+        - taskHoursPerDay
+        - duplicateStartsDiscarded
+        - unattributedTasks
+      properties:
+        tasksPaired:
+          type: integer
+          minimum: 0
+        rowsImported:
+          type: integer
+          minimum: 0
+        operatingDays:
+          type: integer
+          minimum: 0
+        tasksPerDay:
+          type: number
+          minimum: 0
+          description: Tasks paired ÷ operating days.
+        taskHoursPerDay:
+          type: number
+          minimum: 0
+          description: Total task duration in hours ÷ operating days.
+        duplicateStartsDiscarded:
+          type: integer
+          minimum: 0
+          description: Start moves superseded by a later start on the same bin.
+        unattributedTasks:
+          type: integer
+          minimum: 0
+          description: Tasks with no partner ID.
+
+    DailyMedian:
+      type: object
+      required: [date, medianMs]
+      properties:
+        date:
+          type: string
+          format: date
+        medianMs:
+          $ref: '#/components/schemas/DurationMs'
+
+    ZoneTaskTypeStat:
+      type: object
+      required: [zone, taskType, taskCount, medianMs, p90Ms, daily]
+      properties:
+        zone:
+          $ref: '#/components/schemas/Zone'
+        taskType:
+          $ref: '#/components/schemas/TaskType'
+        taskCount:
+          type: integer
+          minimum: 0
+        medianMs:
+          $ref: '#/components/schemas/DurationMs'
+        p90Ms:
+          $ref: '#/components/schemas/DurationMs'
+        daily:
+          type: array
+          description: One entry per operating day, oldest first.
+          items:
+            $ref: '#/components/schemas/DailyMedian'
+
+    WeekdayStat:
+      type: object
+      required: [weekday, avgTasks, avgTaskHours]
+      properties:
+        weekday:
+          $ref: '#/components/schemas/Weekday'
+        avgTasks:
+          type: number
+          minimum: 0
+          description: Average tasks per operating day on this weekday.
+        avgTaskHours:
+          type: number
+          minimum: 0
+          description: Average task hours per operating day on this weekday.
+
+    PartnerListItem:
+      type: object
+      required: [partnerId, taskCount, daysWorked, pacePct, comparison]
+      properties:
+        partnerId:
+          $ref: '#/components/schemas/PartnerIdValue'
+        taskCount:
+          type: integer
+          minimum: 0
+        daysWorked:
+          type: integer
+          minimum: 0
+        pacePct:
+          oneOf:
+            - $ref: '#/components/schemas/PacePct'
+            - type: 'null'
+          description: Null when the comparison is `INSUFFICIENT_SAMPLE`.
+        comparison:
+          $ref: '#/components/schemas/Comparison'
+
+    PartnerSummary:
+      allOf:
+        - $ref: '#/components/schemas/PartnerListItem'
+        - type: object
+          required: [medianGapMs, facilityMedianGapMs]
+          properties:
+            medianGapMs:
+              oneOf:
+                - $ref: '#/components/schemas/DurationMs'
+                - type: 'null'
+              description: Median time between the partner's consecutive tasks. Null when there is no gap to measure.
+            facilityMedianGapMs:
+              $ref: '#/components/schemas/DurationMs'
+
+    PartnerPage:
+      type: object
+      required: [items, page]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/PartnerListItem'
+        page:
+          $ref: '#/components/schemas/PageMeta'
+
+    ComparisonCell:
+      type: object
+      required: [zone, taskType, taskCount, partnerMedianMs, facilityMedianMs, pacePct, comparison]
+      properties:
+        zone:
+          $ref: '#/components/schemas/Zone'
+        taskType:
+          $ref: '#/components/schemas/TaskType'
+        taskCount:
+          type: integer
+          minimum: 0
+          description: The partner's tasks in this cell.
+        partnerMedianMs:
+          oneOf:
+            - $ref: '#/components/schemas/DurationMs'
+            - type: 'null'
+          description: Null when the comparison is `INSUFFICIENT_SAMPLE`.
+        facilityMedianMs:
+          $ref: '#/components/schemas/DurationMs'
+        pacePct:
+          oneOf:
+            - $ref: '#/components/schemas/PacePct'
+            - type: 'null'
+          description: Null when the comparison is `INSUFFICIENT_SAMPLE`.
+        comparison:
+          $ref: '#/components/schemas/Comparison'
+
+    PartnerDay:
+      type: object
+      required: [date, taskCount, pacePct, comparison, medianGapMs, tasksAboveP90]
+      properties:
+        date:
+          type: string
+          format: date
+        taskCount:
+          type: integer
+          minimum: 0
+        pacePct:
+          oneOf:
+            - $ref: '#/components/schemas/PacePct'
+            - type: 'null'
+          description: Null when the comparison is `INSUFFICIENT_SAMPLE`.
+        comparison:
+          $ref: '#/components/schemas/Comparison'
+        medianGapMs:
+          oneOf:
+            - $ref: '#/components/schemas/DurationMs'
+            - type: 'null'
+        tasksAboveP90:
+          type: integer
+          minimum: 0
+
+    TaskListItem:
+      type: object
+      required:
+        - taskId
+        - startedAt
+        - endedAt
+        - zone
+        - taskType
+        - port
+        - binId
+        - partnerId
+        - durationMs
+        - p90Ms
+        - aboveP90
+      properties:
+        taskId:
+          type: integer
+          format: int64
+        startedAt:
+          type: string
+          format: date-time
+          description: The latest start move's time.
+        endedAt:
+          type: string
+          format: date-time
+          description: The end move's time.
+        zone:
+          $ref: '#/components/schemas/Zone'
+        taskType:
+          $ref: '#/components/schemas/TaskType'
+        port:
+          type: integer
+          minimum: 1
+        binId:
+          type: string
+          maxLength: 32
+          examples: [SIMTU004417]
+        partnerId:
+          oneOf:
+            - $ref: '#/components/schemas/PartnerIdValue'
+            - type: 'null'
+          description: Null when no row on the task carries a partner ID.
+        durationMs:
+          $ref: '#/components/schemas/DurationMs'
+        p90Ms:
+          $ref: '#/components/schemas/DurationMs'
+        aboveP90:
+          type: boolean
+
+    TaskPage:
+      type: object
+      required: [items, page]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/TaskListItem'
+        page:
+          $ref: '#/components/schemas/PageMeta'
+
+    PartnerSource:
+      type: string
+      description: Which row the task's partner ID came from. Null when no row has one.
+      enum: [START_MOVE, ACTION_ROW]
+
+    TaskDetail:
+      allOf:
+        - $ref: '#/components/schemas/TaskListItem'
+        - type: object
+          required: [partnerSource, moves]
+          properties:
+            partnerSource:
+              oneOf:
+                - $ref: '#/components/schemas/PartnerSource'
+                - type: 'null'
+            moves:
+              type: array
+              description: Every move on the bin that this task used or discarded, oldest first.
+              items:
+                $ref: '#/components/schemas/Move'
+
+    MoveRole:
+      type: string
+      enum: [DISCARDED_START, START, ACTION, END]
+
+    Move:
+      type: object
+      required:
+        - transactionId
+        - occurredAt
+        - transactionType
+        - fromLocation
+        - toLocation
+        - partnerId
+        - quantityBefore
+        - quantityAfter
+        - quantityChange
+        - role
+        - note
+      properties:
+        transactionId:
+          type: integer
+          format: int64
+        occurredAt:
+          type: string
+          format: date-time
+        transactionType:
+          type: string
+          examples: [MOVE, ADJUST]
+        fromLocation:
+          type: [string, 'null']
+        toLocation:
+          type: [string, 'null']
+        partnerId:
+          oneOf:
+            - $ref: '#/components/schemas/PartnerIdValue'
+            - type: 'null'
+        quantityBefore:
+          type: [integer, 'null']
+        quantityAfter:
+          type: [integer, 'null']
+        quantityChange:
+          type: [integer, 'null']
+        role:
+          $ref: '#/components/schemas/MoveRole'
+        note:
+          type: [string, 'null']
+          description: Why a move was discarded, or other context for the reader.

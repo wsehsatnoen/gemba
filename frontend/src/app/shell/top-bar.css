@@ -1,0 +1,91 @@
+.top-bar {
+  background: var(--surface);
+  border-bottom: var(--hairline);
+}
+
+.inner {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  grid-template-areas: 'wordmark nav end';
+  align-items: center;
+  gap: var(--space-5);
+  max-width: var(--content-max);
+  min-height: 56px;
+  margin: 0 auto;
+  padding: 0 var(--gutter);
+}
+
+.wordmark {
+  grid-area: wordmark;
+  color: var(--text);
+  font-size: var(--text-lg);
+  font-weight: var(--weight-medium);
+  text-decoration: none;
+}
+
+nav {
+  grid-area: nav;
+  display: flex;
+  gap: var(--space-1);
+}
+
+nav a {
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-control);
+  color: var(--text-muted);
+  text-decoration: none;
+}
+
+nav a:hover {
+  color: var(--text);
+  background: var(--surface-sunken);
+}
+
+nav a.active {
+  color: var(--text);
+  background: var(--surface-sunken);
+  font-weight: var(--weight-medium);
+}
+
+.end {
+  grid-area: end;
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  font-size: var(--text-sm);
+}
+
+.badge {
+  padding: 2px var(--space-3);
+  border-radius: var(--radius-pill);
+  background: var(--slower-soft);
+  color: var(--slower);
+  font-weight: var(--weight-medium);
+  white-space: nowrap;
+}
+
+.outside {
+  white-space: nowrap;
+}
+
+/* Under 1024 px the nav drops to its own compact row. */
+@media (max-width: 1023.98px) {
+  .inner {
+    grid-template-columns: auto 1fr;
+    grid-template-areas:
+      'wordmark end'
+      'nav nav';
+    gap: 0 var(--space-3);
+    padding-top: var(--space-2);
+  }
+
+  .end {
+    justify-content: flex-end;
+    gap: var(--space-3);
+  }
+
+  nav {
+    margin: 0 calc(var(--space-3) * -1);
+    padding: var(--space-1) 0 var(--space-2);
+  }
+}

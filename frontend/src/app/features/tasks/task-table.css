@@ -1,0 +1,231 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+
+.region {
+  background: var(--surface);
+  border: var(--hairline);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+}
+
+g-state {
+  display: block;
+  padding: var(--space-6) var(--space-4);
+}
+
+g-state p {
+  margin-bottom: var(--space-3);
+}
+
+/* Desktop table. Each row is 44px tall, and so is each skeleton row. */
+table {
+  width: 100%;
+}
+
+th,
+td {
+  height: 44px;
+  padding: 0 var(--space-3);
+  text-align: left;
+  border-bottom: var(--hairline);
+}
+
+th {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  background: var(--surface-sunken);
+}
+
+th:first-child,
+td:first-child {
+  padding-left: var(--space-2);
+  border-left: 3px solid transparent;
+}
+
+.end {
+  text-align: right;
+}
+
+tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* The row's button stretches over the whole row, so a click anywhere on it selects the task. */
+tbody tr:not(.skeleton-row) {
+  position: relative;
+}
+
+td .row-button::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
+tbody tr:not(.skeleton-row):hover {
+  background: var(--surface-sunken);
+}
+
+/* The selected row: an accent bar, a › marker, and a tint, so it never relies on color alone. */
+tr.selected {
+  background: var(--accent-soft);
+}
+
+tr.selected td:first-child {
+  border-left-color: var(--accent);
+}
+
+tbody tr.selected:hover {
+  background: var(--accent-soft);
+}
+
+.marker {
+  display: inline-block;
+  width: 1ch;
+  color: var(--accent-on-soft);
+  font-weight: var(--weight-medium);
+}
+
+.row-button {
+  padding: var(--space-1) var(--space-2);
+  background: none;
+  border: none;
+  border-radius: var(--radius-control);
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+
+tr.selected .row-button {
+  color: var(--accent-on-soft);
+  font-weight: var(--weight-medium);
+}
+
+/* Mobile stacked rows: one full-width button per task. */
+.stack {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stack li {
+  border-bottom: var(--hairline);
+  border-left: 3px solid transparent;
+}
+
+.stack li:last-child {
+  border-bottom: none;
+}
+
+.row-button.stacked {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  width: 100%;
+  min-height: 64px;
+  padding: var(--space-3) var(--space-4);
+  border-radius: 0;
+  color: inherit;
+  text-align: left;
+  text-decoration: none;
+}
+
+.row-button.stacked:focus-visible {
+  outline-offset: -2px;
+}
+
+.stack li.selected {
+  background: var(--accent-soft);
+  border-left-color: var(--accent);
+}
+
+.stack li.selected .row-button.stacked {
+  color: var(--text);
+}
+
+.line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-size: var(--text-sm);
+}
+
+.time,
+.duration {
+  font-size: var(--text-md);
+  font-weight: var(--weight-medium);
+}
+
+.stack li.selected .time::before {
+  content: '› ';
+  color: var(--accent-on-soft);
+}
+
+.skeleton-item {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 64px;
+  padding: var(--space-3) var(--space-4);
+}
+
+/* Skeleton bars sized like the text they stand in for. */
+.bar {
+  display: inline-block;
+  height: 14px;
+  width: 72px;
+  vertical-align: middle;
+}
+
+.bar.short {
+  width: 44px;
+}
+
+.bar.start {
+  width: 104px;
+}
+
+.bar.wide {
+  width: 120px;
+}
+
+.pill {
+  display: inline-block;
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-pill);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  white-space: nowrap;
+}
+
+.pill.slower {
+  background: var(--slower-soft);
+  color: var(--slower);
+}
+
+.pager {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-top: var(--hairline);
+  font-size: var(--text-sm);
+}
+
+.pager-buttons {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.pager [aria-disabled='true'] {
+  color: var(--text-muted);
+  border-color: var(--border);
+  cursor: default;
+}

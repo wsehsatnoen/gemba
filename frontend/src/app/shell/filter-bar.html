@@ -1,0 +1,141 @@
+<ng-template #dateInputs>
+  <div class="dates">
+    <label>
+      <span class="field-label">From</span>
+      <input
+        #fromInput
+        id="filter-from"
+        class="control"
+        type="date"
+        [min]="meta.dataFrom"
+        [max]="filters().to"
+        [value]="filters().from"
+        (change)="setDate('from', fromInput)"
+      />
+    </label>
+    <label>
+      <span class="field-label">To</span>
+      <input
+        #toInput
+        id="filter-to"
+        class="control"
+        type="date"
+        [min]="filters().from"
+        [max]="meta.dataTo"
+        [value]="filters().to"
+        (change)="setDate('to', toInput)"
+      />
+    </label>
+  </div>
+</ng-template>
+
+<ng-template #menus>
+  <label>
+    <span [class]="isDesktop() ? 'visually-hidden' : 'field-label'">Zone</span>
+    <select id="filter-zone" class="control" #zone (change)="setZone(zone.value)">
+      <option value="" [selected]="!filters().zone">All zones</option>
+      @for (z of zones; track z) {
+        <option [value]="z" [selected]="filters().zone === z">{{ zoneLabels[z] }}</option>
+      }
+    </select>
+  </label>
+  <label>
+    <span [class]="isDesktop() ? 'visually-hidden' : 'field-label'">Task type</span>
+    <select id="filter-task-type" class="control" #taskType (change)="setTaskType(taskType.value)">
+      <option value="" [selected]="!filters().taskType">All task types</option>
+      @for (t of taskTypes; track t) {
+        <option [value]="t" [selected]="filters().taskType === t">{{ taskTypeLabels[t] }}</option>
+      }
+    </select>
+  </label>
+</ng-template>
+
+@if (isDesktop()) {
+  <div class="bar" role="group" aria-label="Filters">
+    <button
+      #datesTrigger
+      type="button"
+      class="control trigger"
+      cdkOverlayOrigin
+      #origin="cdkOverlayOrigin"
+      aria-haspopup="dialog"
+      [attr.aria-expanded]="datesOpen()"
+      (click)="toggleDates()"
+    >
+      <span class="visually-hidden">Dates: </span>{{ filters().from | dateRange: filters().to }}
+      <svg class="chevron" viewBox="0 0 12 12" aria-hidden="true">
+        <path d="M3 4.5 6 7.5 9 4.5" />
+      </svg>
+    </button>
+    <ng-template
+      cdkConnectedOverlay
+      [cdkConnectedOverlayOrigin]="origin"
+      [cdkConnectedOverlayOpen]="datesOpen()"
+      [cdkConnectedOverlayPositions]="datesPositions"
+      (overlayOutsideClick)="closeDates($event)"
+      (overlayKeydown)="onOverlayKeydown($event)"
+      (detach)="datesOpen.set(false)"
+    >
+      <div
+        class="popover"
+        role="dialog"
+        aria-label="Date range"
+        cdkTrapFocus
+        [cdkTrapFocusAutoCapture]="true"
+      >
+        <ng-container [ngTemplateOutlet]="dateInputs" />
+        <div class="popover-actions">
+          <button type="button" class="link-button" (click)="resetDates()">All dates</button>
+          <button type="button" class="control" (click)="closeDates()">Done</button>
+        </div>
+      </div>
+    </ng-template>
+    <ng-container [ngTemplateOutlet]="menus" />
+  </div>
+} @else {
+  <div class="chips" role="group" aria-label="Filters">
+    <button
+      type="button"
+      class="chip"
+      aria-controls="filter-panel"
+      [attr.aria-expanded]="panelOpen()"
+      (click)="openPanel($event, '#filter-from')"
+    >
+      <span class="visually-hidden">Dates: </span>{{ filters().from | dateRange: filters().to }}
+    </button>
+    <button
+      type="button"
+      class="chip"
+      aria-controls="filter-panel"
+      [attr.aria-expanded]="panelOpen()"
+      (click)="openPanel($event, '#filter-zone')"
+    >
+      <span class="visually-hidden">Zone: </span>{{ zoneText() }}
+    </button>
+    <button
+      type="button"
+      class="chip"
+      aria-controls="filter-panel"
+      [attr.aria-expanded]="panelOpen()"
+      (click)="openPanel($event, '#filter-task-type')"
+    >
+      <span class="visually-hidden">Task type: </span>{{ taskTypeText() }}
+    </button>
+  </div>
+  @if (panelOpen()) {
+    <div #panel id="filter-panel" class="panel" role="region" aria-label="Filters">
+      <ng-container [ngTemplateOutlet]="dateInputs" />
+      <ng-container [ngTemplateOutlet]="menus" />
+      <div class="popover-actions">
+        <button type="button" class="link-button" (click)="resetDates()">All dates</button>
+        <button type="button" class="button-primary" (click)="closePanel()">Done</button>
+      </div>
+    </div>
+  }
+}
+
+@if (invalidText()) {
+  <p class="notice" role="status">
+    Some filters in the link weren't valid, so defaults are shown for: {{ invalidText() }}.
+  </p>
+}

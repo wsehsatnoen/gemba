@@ -1,0 +1,244 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+
+/* Desktop: a column beside the list that stays in view while the list scrolls. */
+:host(:not(.fullscreen)) {
+  position: sticky;
+  top: var(--space-4);
+  max-height: calc(100vh - 2 * var(--space-4));
+  overflow-y: auto;
+  background: var(--surface);
+  border: var(--hairline);
+  border-radius: var(--radius-card);
+}
+
+/* Under 1024 px: a full-screen view over the page. */
+:host(.fullscreen) {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  overflow-y: auto;
+  background: var(--surface);
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-4);
+}
+
+.top {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.top h2 {
+  flex: 1;
+  font-size: var(--text-lg);
+}
+
+/* The heading takes focus only so screen readers start here; it isn't a control. */
+.top h2:focus {
+  outline: none;
+}
+
+.icon-button {
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius-control);
+  font-size: var(--text-lg);
+  line-height: 1;
+}
+
+.icon-button:hover {
+  background: var(--surface-sunken);
+}
+
+.meta {
+  margin-top: calc(-1 * var(--space-3));
+  font-size: var(--text-sm);
+}
+
+.duration-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.duration {
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-medium);
+  line-height: 1.1;
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+}
+
+.info-card {
+  padding: var(--space-3);
+  border: var(--hairline);
+  border-radius: var(--radius-card);
+  min-width: 0;
+}
+
+.card-label {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-regular);
+}
+
+.card-value {
+  font-weight: var(--weight-medium);
+  overflow-wrap: anywhere;
+}
+
+.card-sub {
+  font-size: var(--text-xs);
+}
+
+.moves-heading {
+  font-size: var(--text-md);
+}
+
+.moves {
+  margin: calc(-1 * var(--space-2)) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* time ........ pill
+   type, locations, quantity
+   partner
+   note (discarded only) */
+.move {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas:
+    'time pill'
+    'what what'
+    'partner partner'
+    'note note';
+  gap: 2px var(--space-2);
+  padding: var(--space-3) 0;
+  border-bottom: var(--hairline);
+  font-size: var(--text-sm);
+}
+
+.move:last-child {
+  border-bottom: none;
+}
+
+.time {
+  grid-area: time;
+}
+
+.what {
+  grid-area: what;
+}
+
+.type {
+  font-weight: var(--weight-medium);
+  margin-right: var(--space-1);
+}
+
+.quantity {
+  margin-left: var(--space-2);
+}
+
+.partner {
+  grid-area: partner;
+}
+
+.move .pill {
+  grid-area: pill;
+  align-self: start;
+}
+
+.note {
+  grid-area: note;
+  font-style: italic;
+}
+
+.move.discarded {
+  color: var(--text-muted);
+}
+
+.pill {
+  display: inline-block;
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-pill);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  white-space: nowrap;
+}
+
+.pill.slower {
+  background: var(--slower-soft);
+  color: var(--slower);
+}
+
+.pill.accent {
+  background: var(--accent-soft);
+  color: var(--accent-on-soft);
+}
+
+.pill.neutral {
+  background: var(--neutral-soft);
+  color: var(--neutral);
+}
+
+.footnote {
+  padding-top: var(--space-3);
+  border-top: var(--hairline);
+  font-size: var(--text-xs);
+}
+
+.not-found {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+/* Skeletons sized like the content they stand in for. */
+.loading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.sk-meta {
+  width: 70%;
+  height: 16px;
+  margin-top: calc(-1 * var(--space-3));
+}
+
+.sk-duration {
+  width: 120px;
+  height: 40px;
+}
+
+.sk-card {
+  height: 84px;
+}
+
+.sk-heading {
+  width: 140px;
+  height: 20px;
+}
+
+.sk-move {
+  height: 64px;
+}
