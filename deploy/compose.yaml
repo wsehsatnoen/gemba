@@ -7,10 +7,15 @@
 #
 # The backend service isn't defined here yet. nginx expects it to be named `backend` and to listen
 # on port 8080 on this Compose network; until it exists, the app loads and /api/ calls return 502.
+#
+# To show the app before the backend exists, run the demo image, which answers /api/* from the
+# built-in sample data instead of calling the backend:
+#   GEMBA_FRONTEND_TAG=demo docker compose pull && GEMBA_FRONTEND_TAG=demo docker compose up -d
+# (or put GEMBA_FRONTEND_TAG=demo in a .env file next to this one).
 
 services:
   frontend:
-    image: ghcr.io/wsehsatnoen/gemba-frontend:latest
+    image: ghcr.io/wsehsatnoen/gemba-frontend:${GEMBA_FRONTEND_TAG:-latest}
     restart: unless-stopped
     # Loopback only: the tunnel is the public way in. The backend needs no published port, since
     # nginx reaches it over the Compose network.

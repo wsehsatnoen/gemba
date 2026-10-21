@@ -1,8 +1,9 @@
 # Front end CI.
 # Pull requests: lint, unit tests, production build, the no-mock-code check, the OpenAPI lint, the
 # generated-types check, and Playwright against the mock build.
-# Pushes to main: the same checks, then an ARM64 image pushed to GHCR. The Pi only pulls it;
-# nothing is ever built on the Pi.
+# Pushes to main: the same checks, then ARM64 images pushed to GHCR: the real one (:latest) and a
+# demo one (:demo) that answers /api/* from the mock fixtures. The Pi only pulls them; nothing is
+# ever built on the Pi.
 name: frontend
 
 on:
@@ -113,3 +114,39 @@ jobs:
             org.opencontainers.image.revision=${{ github.sha }}
           cache-from: type=gha,scope=frontend
           cache-to: type=gha,scope=frontend,mode=max
+
+  # The same image built with the demo configuration, so the app can be shown on the Pi before the
+  # backend exists. It gets its own tags (never :latest), so the production image stays mock-free.
+  demo-image:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: frontend
+          platforms: linux/arm64
+          push: true
+          build-args: |
+            BUILD_SCRIPT=build:demo
+          tags: |
+            ghcr.io/wsehsatnoen/gemba-frontend:demo
+            ghcr.io/wsehsatnoen/gemba-frontend:demo-${{ github.sha }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=gha,scope=frontend-demo
+          cache-to: type=gha,scope=frontend-demo,mode=max
