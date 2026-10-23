@@ -12,8 +12,11 @@ COPY package.json package-lock.json ./
 RUN npm ci --no-audit --no-fund
 
 # src/app/api/schema.d.ts is committed, so the build doesn't need ../api/openapi.yaml.
+# BUILD_SCRIPT=build:demo makes the demo image, which answers /api/* from the mock fixtures so
+# the app can be shown without a backend. The default is the real production build.
+ARG BUILD_SCRIPT=build
 COPY . .
-RUN npm run build
+RUN npm run ${BUILD_SCRIPT}
 
 # Stage 2: the runtime image, built for the target platform (linux/arm64 for the Pi). Only COPY
 # steps run here, so it needs no emulation. The unprivileged image runs as a non-root user and

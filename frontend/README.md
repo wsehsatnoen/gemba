@@ -30,7 +30,7 @@ docker build -t gemba-frontend .
 docker run --rm -p 8080:8080 gemba-frontend
 ```
 
-The image is a two-stage build. The first stage runs the Angular build on the build machine's own architecture, and the second copies the static files into `nginxinc/nginx-unprivileged`, which is the only part that needs to be ARM64 for the Pi. nginx serves the app with an `index.html` fallback, caches hashed assets for a year, never caches `index.html`, and proxies `/api/` and `/actuator/health` to a Compose service named `backend` on port 8080. Without that service running, the app will load and every API call will return a 502. On the Pi, `deploy/compose.yaml` pulls the image from GHCR (GitHub Container Registry), and the Cloudflare Tunnel points at the frontend container.
+The image is a two-stage build. The first stage runs the Angular build on the build machine's own architecture, and the second copies the static files into `nginxinc/nginx-unprivileged`, which is the only part that needs to be ARM64 for the Pi. nginx serves the app with an `index.html` fallback, caches hashed assets for a year, never caches `index.html`, and proxies `/api/` and `/actuator/health` to a Compose service named `backend` on port 8080. Without that service running, the app will load and every API call will return a 502. On the Pi, `deploy/compose.yaml` pulls the image from GHCR (GitHub Container Registry), and the Cloudflare Tunnel points at the frontend container. To show the app before the backend exists, CI also pushes a `:demo` image built with `npm run build:demo` (production optimizations, mock fixtures in place of the API); run it on the Pi with `GEMBA_FRONTEND_TAG=demo docker compose up -d`. The `:latest` image never contains mock code.
 
 ## Checks
 
