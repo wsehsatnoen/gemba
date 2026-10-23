@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "simgen"
+version = "1.0.0"
+description = "Offline synthetic AutoStore/WMS inventory-control transaction generator"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "numpy>=2.0",
+    "pandas>=2.2",
+    "openpyxl>=3.1",
+    "PyYAML>=6.0",
+]
+
+[project.optional-dependencies]
+test = ["pytest>=7.4"]
+
+[project.scripts]
+simgen = "simgen.cli:main"
+
+[tool.setuptools]
+packages = ["simgen", "simgen.validators"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

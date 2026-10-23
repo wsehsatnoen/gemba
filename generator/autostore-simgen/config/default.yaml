@@ -1,0 +1,398 @@
+# =============================================================================
+# Synthetic AutoStore/WMS transaction generator - default configuration
+# =============================================================================
+# Every numeric value used by the generation logic lives in this file.
+# The loader validates it on start-up: probability tables must sum to 1
+# (within 1e-9), percentage tables to 100, ranges must be ordered, and port
+# numbers must exist in their environment.
+#
+# Values marked "ASSUMPTION" are not given by the specification; they are
+# documented defaults chosen so that the specified behaviour is complete.
+# =============================================================================
+
+meta:
+  notice_text: "SYNTHETIC TEST DATA - NOT FOR PRODUCTION USE"
+  workbook_creator: "Synthetic Data Generator"
+  schema_disclaimer: >-
+    The 89-column schema is a plausible stand-in for an inventory-control
+    transaction export. It is not guaranteed to match any real export.
+
+run:
+  default_seed: 42
+  start_date: "2027-01-04"
+  end_date: "2027-01-31"
+  clusters_per_date_noise: 0.15          # equal share per date, +/-15% noise
+  day_end_limit: "22:00:00"              # ASSUMPTION: a pushed start later than this fails loudly
+  rows_mode:
+    dp_threshold_rows: 12                # switch to the remainder solver below this gap
+    overgeneration_margin: 0.03          # ASSUMPTION: schedule 3% extra clusters, then select
+    overgeneration_extra_clusters: 25    # ASSUMPTION: plus a fixed cushion for small targets
+    max_backoff_clusters: 25             # ASSUMPTION: how far the solver may back off greedy picks
+
+sampling:
+  # ASSUMPTION: categorical draws use deficit-corrected sampling so realised
+  # shares track configured shares closely even for rare categories.
+  # 0 disables the correction (plain independent draws).
+  balance_gain: 2.5
+
+environments:
+  AMBIENT:
+    code: AMB
+    zone: AMBIENT
+    grid_location: SIM_AMBIENT_GRID
+    port_location_prefix: SIM_AMBIENT_PORT_
+    port_count: 16
+    bin_type_shares: {BIN-1x1: 0.78, BIN-2x1: 0.08, BIN-3x1: 0.05, BIN-4x1: 0.09}
+    lot_expiry:
+      populated_probability: 0.30
+      expiry_offset_days: [30, 540]
+  COOLER:
+    code: CLR
+    zone: COOLER
+    grid_location: SIM_COOLER_GRID
+    port_location_prefix: SIM_COOLER_PORT_
+    port_count: 7
+    bin_type_shares: {BIN-1x1: 0.74, BIN-2x1: 0.10, BIN-3x1: 0.08, BIN-4x1: 0.08}
+    lot_expiry:
+      populated_probability: 0.90
+      expiry_offset_days: [3, 45]
+
+bins:
+  initial_on_hand_sigma: 0.6             # ASSUMPTION: lognormal sigma for initial on-hand
+  min_initial_on_hand: 1
+  types:
+    BIN-1x1: {median_on_hand: 12, max_quantity: 60}
+    BIN-2x1: {median_on_hand: 20, max_quantity: 100}
+    BIN-3x1: {median_on_hand: 28, max_quantity: 140}
+    BIN-4x1: {median_on_hand: 36, max_quantity: 180}
+  popularity_sigma: 0.8                  # lognormal popularity weights for TU and product selection
+  product_pool_headroom: 1.25            # ASSUMPTION: environment SKU pool vs largest per-config subset
+  feasibility_attempts: 30               # ASSUMPTION: TU re-draws to find stock that fits a sampled adjustment
+  minimum_population: 4                  # ASSUMPTION: floor for tiny runs
+
+bin_day:
+  repeat_rate: 0.01                      # second cluster for the same TU on a date, per bin-day
+  max_clusters_per_bin_day: 2
+
+configurations:
+  AMBIENT_CYCLE_COUNT:
+    short_name: AMB_CC
+    environment: AMBIENT
+    workflow: CC
+    operation: "AutoStore Cycle Count"
+    employee_pool_size: 28
+    ports:
+      weights_percent: {11: 18, 8: 15, 9: 13, 1: 11, 7: 9, 2: 8}
+      remainder_percent: 26              # shared equally by unlisted ports
+    templates:
+      M-M: 0.642
+      M-A-M: 0.327
+      M-A-A-M: 0.010
+      M-D-M: 0.005
+      M-A-A-A-M: 0.002
+      M-D-A-M: 0.002
+      RARE_CC: 0.012
+    adjust_sign: {negative: 0.710, positive: 0.152, zero: 0.138}
+    adjust_magnitude_profile: CYCLE_COUNT
+    adjust_reason_profile: CYCLE_COUNT
+    adjust_magnitude_targets: {median_nonzero: 3, p90_including_zeros: 15}
+    start_hours:
+      weights_percent: {15: 5.5, 16: 18.0, 17: 26.7, 18: 44.8, 19: 5.0}
+      other_percent: 0.0                 # "other" = 14h or 20h, split equally
+    population_ratios: {unique_bins: 0.77, unique_products: 0.27}
+    duration_targets_seconds: {median: 22, p90: 94}
+    long_pause:
+      probability_range: [0.01, 0.03]
+      factor_range: [4, 10]
+
+  COOLER_CYCLE_COUNT:
+    short_name: CLR_CC
+    environment: COOLER
+    workflow: CC
+    operation: "AutoStore Cycle Count"
+    employee_pool_size: 26
+    ports:
+      weights_percent: {4: 26, 2: 22, 5: 18, 3: 14, 1: 10}
+      remainder_percent: 10
+    templates:
+      M-M: 0.477
+      M-A-M: 0.460
+      M-A-A-M: 0.025
+      M-D-M: 0.010
+      M-A-M-M-M: 0.007
+      M-M-M-M: 0.006
+      RARE_CC: 0.015
+    adjust_sign: {negative: 0.727, positive: 0.172, zero: 0.101}
+    adjust_magnitude_profile: CYCLE_COUNT
+    adjust_reason_profile: CYCLE_COUNT
+    adjust_magnitude_targets: {median_nonzero: 3, p90_including_zeros: 14}
+    start_hours:
+      weights_percent: {15: 3.1, 16: 10.3, 17: 32.4, 18: 49.2, 19: 5.0}
+      other_percent: 0.0
+    population_ratios: {unique_bins: 0.57, unique_products: 0.22}
+    duration_targets_seconds: {median: 26, p90: 101}
+    long_pause:
+      probability_range: [0.01, 0.03]
+      factor_range: [4, 10]
+
+  AMBIENT_BIN_MAINTENANCE:
+    short_name: AMB_BM
+    environment: AMBIENT
+    workflow: BM
+    operation: "AutoStore Bin Maintenance"
+    employee_pool_size: 30
+    ports:
+      weights_percent: {15: 16, 9: 14, 8: 12, 16: 10, 14: 9, 7: 8, 4: 7}
+      remainder_percent: 24
+    templates:
+      M-T-M: 0.600
+      M-M: 0.324
+      M-T-T-M: 0.033
+      M-M-M-M: 0.009
+      M-A-M: 0.006
+      M-T-A-T-M: 0.005
+      M-T-A-M: 0.003
+      RARE_BM: 0.020
+    adjust_sign: {negative: 0.384, positive: 0.043, zero: 0.573}
+    adjust_magnitude_profile: BIN_MAINTENANCE
+    adjust_reason_profile: BIN_MAINTENANCE
+    adjust_magnitude_targets: {median_nonzero: null, p90_including_zeros: 6}
+    adjust_tu:
+      zero_or_blank_rate: 0.631
+    start_hours:
+      weights_percent: {15: 7.3, 16: 10.6, 17: 27.1, 18: 42.7, 19: 12.2}
+      other_percent: 0.1
+    population_ratios: {unique_bins: 0.80, unique_products: 0.30}
+    duration_targets_seconds: {median: 24, p90: 152}
+    long_pause:
+      probability_range: [0.02, 0.05]
+      factor_range: [6, 14]
+
+  COOLER_BIN_MAINTENANCE:
+    short_name: CLR_BM
+    environment: COOLER
+    workflow: BM
+    operation: "AutoStore Bin Maintenance"
+    employee_pool_size: 24
+    ports:
+      weights_percent: {5: 24, 2: 20, 6: 17, 7: 14, 3: 11, 4: 9}
+      remainder_percent: 5
+    templates:
+      M-M: 0.507
+      M-T-M: 0.421
+      M-T-T-M: 0.028
+      M-A-M: 0.006
+      M-M-M-M: 0.003
+      M-A-T-M: 0.003
+      RARE_BM: 0.032
+    adjust_sign: {negative: 0.397, positive: 0.103, zero: 0.500}
+    adjust_magnitude_profile: BIN_MAINTENANCE
+    adjust_reason_profile: BIN_MAINTENANCE
+    adjust_magnitude_targets: {median_nonzero: null, p90_including_zeros: 6}
+    adjust_tu:
+      zero_or_blank_rate: 0.791
+    start_hours:
+      weights_percent: {15: 4.6, 16: 19.3, 17: 14.7, 18: 49.7, 19: 11.5}
+      other_percent: 0.2
+    population_ratios: {unique_bins: 0.65, unique_products: 0.25}
+    duration_targets_seconds: {median: 27, p90: 192}
+    long_pause:
+      probability_range: [0.02, 0.05]
+      factor_range: [6, 14]
+
+template_libraries:
+  RARE_CC: {M-X-M: 0.30, M-CA-M: 0.20, M-U-M: 0.15, M-A-CA-M: 0.15, M-D-D-M: 0.10, M-CP-M: 0.10}
+  RARE_BM: {M-T-T-T-M: 0.30, M-X-M: 0.15, M-T-X-M: 0.15, M-D-M: 0.15, M-T-M-M-M: 0.10, M-CA-M: 0.10, M-CP-M: 0.05}
+
+template_multipliers:
+  adjustment_rate_multiplier: 1.0        # scales templates containing A or T; M-M absorbs the difference
+  exception_rate_multiplier: 1.0         # scales templates containing D, X, CA, CP or U
+
+adjust_magnitude_profiles:
+  CYCLE_COUNT:
+    buckets:                             # [low, high, probability]; uniform integer within a bucket
+      - [1, 1, 0.20]
+      - [2, 2, 0.17]
+      - [3, 3, 0.13]
+      - [4, 5, 0.15]
+      - [6, 9, 0.15]
+      - [10, 15, 0.12]
+      - [16, 30, 0.06]
+      - [31, 60, 0.02]
+    # ASSUMPTION: the table puts exactly 50% at or below the target median (3),
+    # which makes the realised median a coin flip between 3 and 4. This much
+    # probability is moved from the bucket above the median into the median
+    # bucket so the realised median equals the configured target.
+    median_anchor_mass: 0.01
+  BIN_MAINTENANCE:
+    buckets:
+      - [1, 1, 0.30]
+      - [2, 2, 0.20]
+      - [3, 3, 0.15]
+      - [4, 6, 0.22]
+      - [7, 12, 0.10]
+      - [13, 20, 0.03]
+    median_anchor_mass: 0.0              # no median target is specified for Bin Maintenance
+
+adjust_reason_profiles:
+  CYCLE_COUNT: {SIM_GENERAL_ADMIN: 0.70, SIM_CYCLE_COUNT: 0.15, SIM_MISSING: 0.07, SIM_DAMAGED: 0.05, SIM_EXPIRED: 0.03}
+  BIN_MAINTENANCE: {SIM_GENERAL_ADMIN: 0.75, SIM_DAMAGED: 0.10, SIM_EXPIRED: 0.08, SIM_MISSING: 0.05, SIM_OTHER: 0.02}
+positive_adjust_forbidden_reasons: [SIM_MISSING, SIM_DAMAGED, SIM_EXPIRED]
+
+adjust_tu:
+  blank_share_within_zero_or_blank: 0.5
+  product_detail_blank_rate: 0.30
+  reasons: {SIM_TU_MAINTENANCE: 0.85, SIM_TU_CLEANING: 0.10, SIM_TU_INSPECTION: 0.05}
+
+change_attribute:
+  reason: SIM_ATTRIBUTE_UPDATE
+  lot_change_probability: 0.5            # ASSUMPTION: share of CA rows that also change the lot
+
+material_status:
+  default: {AVAILABLE: 0.97, HOLD: 0.02, DAMAGED: 0.005, EXPIRED: 0.005}
+  tu_damaged_cluster: {DAMAGED: 0.60, HOLD: 0.30, AVAILABLE: 0.10}
+  tu_dirty_cluster: {HOLD: 0.40, AVAILABLE: 0.60}
+  adjust_reason_changes:
+    SIM_EXPIRED: {to_status: EXPIRED, probability: 0.5}
+    SIM_DAMAGED: {to_status: DAMAGED, probability: 0.5}
+
+reason_descriptions:
+  SIM_GENERAL_ADMIN: "General administrative adjustment"
+  SIM_CYCLE_COUNT: "Cycle count variance"
+  SIM_MISSING: "Item not found in bin"
+  SIM_DAMAGED: "Damaged item"
+  SIM_EXPIRED: "Expired item"
+  SIM_OTHER: "Other adjustment"
+  SIM_TU_MAINTENANCE: "Bin maintenance"
+  SIM_TU_CLEANING: "Bin cleaning"
+  SIM_TU_INSPECTION: "Bin inspection"
+  SIM_ATTRIBUTE_UPDATE: "Lot or expiry attribute update"
+
+employees:
+  cross_trained_fraction: 0.20
+  cross_trained_activity_scale: 0.5      # ASSUMPTION: CC activity weight of a cross-trained employee vs their BM weight
+  activity_weight_sigma: 0.9
+  top_share_fraction: 0.20
+  top_share_target: [0.45, 0.60]
+  # ASSUMPTION: activity weights are re-drawn (deterministically from the
+  # seed) until the expected top-20% share sits inside this narrower band,
+  # so the realised share lands inside the target band.
+  top_share_redraw_band: [0.48, 0.57]
+  top_share_max_redraws: 500
+  active_day_fraction: [0.60, 0.90]
+  shift_start_window: ["14:45", "16:00"]
+  shift_end_window: ["19:00", "20:30"]
+  port_stickiness: 0.90
+  port_balance_gain: 1.5                 # ASSUMPTION: pull of cumulative port deficits on new port draws
+  speed_tiers:
+    - {name: very_fast, share: 0.10, multiplier: 0.30}
+    - {name: fast, share: 0.20, multiplier: 0.65}
+    - {name: typical, share: 0.40, multiplier: 1.00}
+    - {name: slow, share: 0.20, multiplier: 1.60}
+    - {name: very_slow, share: 0.10, multiplier: 2.50}
+  speed_multiplier_jitter: 0.10          # per-employee multiplier within +/-10% of the tier centre
+  # ASSUMPTION: speed-tier and variability labels keep their exact per-pool
+  # counts, but are dealt so the cluster-weighted mix matches the configured
+  # shares (activity_balanced); "random" ignores activity when dealing them.
+  tier_assignment: activity_balanced
+  cross_trained_tier_shift: {"-1": 0.25, "0": 0.50, "1": 0.25}
+  variability_categories:
+    - {name: low, share: 0.30, sigma_range: [0.15, 0.25]}
+    - {name: typical, share: 0.50, sigma_range: [0.25, 0.45]}
+    - {name: high, share: 0.20, sigma_range: [0.45, 0.70]}
+  long_pause_range_inset: 0.25           # ASSUMPTION: personal factor range sits inside the configuration range
+  adjustment_tendency_sigma: 0.35
+  repeat_adjustment_tendency_sigma: 0.35 # ASSUMPTION: not specified; mirrors adjustment tendency
+  exception_tendency_sigma: 0.50
+
+scheduling:
+  handoff_gap_seconds: [2, 20]
+  # ASSUMPTION: an employee counts as idle only when they are free AND their
+  # port for the date is free ("reassign"). The alternative "wait" lets a
+  # selected employee queue for an occupied port, which builds long queues on
+  # busy ports and distorts the hour mix and activity shares.
+  port_busy_policy: reassign
+  # ASSUMPTION: selection among idle employees is weighted by activity weight
+  # times two balancing factors that use running deficits: employees who were
+  # blocked (busy or port occupied) are favoured when free, and employees on
+  # ports behind their target share are favoured. Set either gain to 0 to
+  # disable it.
+  employee_balance_gain: 0.30
+  port_balance_gain: 0.30
+  # Warn when the expected busiest-hour port utilisation of an environment
+  # exceeds this share of port capacity (high volume in a short date range).
+  capacity_warning_utilization: 0.85
+
+timing:
+  base_gap_seconds:
+    open_to_close: 12.0                  # Open Move -> Close Move (M-M)
+    open_to_adjust: 15.0
+    adjust_to_adjust: 10.0
+    adjust_to_close: 6.0
+    open_to_adjust_tu: 10.0
+    adjust_tu_to_adjust_tu: 2.0
+    adjust_tu_adjust: 8.0                # Adjust TU <-> Adjust
+    adjust_tu_to_close: 8.0
+    open_to_event: 8.0                   # Open Move -> D / X / CA / CP / U
+    event_to_next: 14.0                  # D / X / CA / CP / U -> next
+    close_to_represent: 20.0             # Close Move -> re-present Move (GRID->PORT)
+    adjust_to_event: 10.0                # ASSUMPTION: Adjust -> D / X / CA / CP / U (not specified)
+    adjust_tu_to_event: 8.0              # ASSUMPTION: Adjust TU -> D / X / CA / CP / U (not specified)
+  min_gap_seconds: 0.15
+  max_gap_seconds: 900
+  calibration:
+    sample_clusters: 60000               # specification minimum is 20,000
+    # The long-pause scale first multiplies every employee's pause probability
+    # (keeping their relative propensity) until the population-average pause
+    # rate reaches max_mean_pause_rate; beyond that it lengthens pauses
+    # (multiplies each employee's factor range). Both parts are reported.
+    # ASSUMPTION: the specified 1-3% / 2-5% probabilities cannot produce the
+    # P90 targets on their own (P90 sits at the 90th percentile, so at least
+    # ~10% of clusters must carry the tail), so calibration raises them.
+    max_mean_pause_rate: 0.15
+    max_magnitude_multiplier: 10.0
+    max_pause_probability: 0.60          # hard cap on any individual per-cluster probability
+    iterations: 60
+
+updaters:
+  opening_move_system_probability: 0.60
+  closing_move_system_probability: 0.85  # closing and re-presentation Moves
+  # When true, a cluster whose rows would all be "system" gets its opening
+  # Move attributed to the employee so every cluster shows its employee.
+  # Default false = the specification's probabilities apply as written.
+  require_employee_row: false
+
+constants:
+  unit_of_measure: EA
+  owner: SIM_OWNER_01
+  site: SIM_SITE_01
+  transaction_source: SIM_AUTOSTORE
+  system_user: system
+
+validation:
+  min_rows_for_statistics: 20000
+  # ASSUMPTION: a share metric is graded only when its tolerance spans at
+  # least this many observations (n * tolerance >= value). Smaller samples are
+  # reported as INFO because one observation already exceeds the tolerance.
+  min_tolerance_counts: 1.0
+  min_expected_count_relative: 4.0       # same idea for relative tolerances
+  tolerances:
+    template_share_major_pp: 2.0         # shares >= 10%
+    template_share_minor_pp: 1.0         # shares 1-10%
+    template_share_rare_relative: 0.50   # shares < 1% and rare buckets
+    transaction_type_mix_pp: 1.5
+    mean_rows_per_cluster_relative: 0.02
+    median_duration_relative: 0.10
+    p90_duration_relative: 0.15
+    start_hour_pp: 3.0
+    port_share_pp: 3.0
+    bin_type_share_pp: 2.0
+    adjust_sign_pp: 3.0
+    magnitude_p90_units: 2
+    adjust_tu_zero_blank_pp: 3.0
+    reason_status_pp: 3.0
+    icc_min: 0.3
+    unique_ratio_relative: 0.10
+    repeat_bin_day_relative: 0.50
+  pattern_scan:
+    long_token_min_length: 24
